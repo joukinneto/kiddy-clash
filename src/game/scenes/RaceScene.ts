@@ -1,5 +1,6 @@
 import Phaser from 'phaser'
 import { HERO_BY_ID, abilityLabel, type GameLanguage } from '../domain/heroes'
+import { initializeQaState, updateQaState } from '../qa'
 import {
   BOT_JUMP_ZONES,
   BUMPER_CRATES,
@@ -90,6 +91,7 @@ export class RaceScene extends Phaser.Scene {
 
   create() {
     const t = text[this.language]
+    initializeQaState()
     this.physics.world.setBounds(0, 0, LEVEL_WIDTH, 720)
     this.physics.world.setBoundsCollision(true, true, true, false)
     this.cameras.main.setBounds(0, 0, LEVEL_WIDTH, 720)
@@ -141,6 +143,7 @@ export class RaceScene extends Phaser.Scene {
       collectible.disableBody(true, true)
       this.stars += 1
       this.starsText.setText(`⭐ ${t.stars}: ${this.stars}`)
+      updateQaState({ stars: this.stars, lastEvent: 'star-collected' })
     })
 
     const finish = this.physics.add.staticImage(FINISH_X, 505, 'finish')
@@ -167,6 +170,12 @@ export class RaceScene extends Phaser.Scene {
     this.startTime = this.time.now
 
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08, -180, 35)
+    updateQaState({
+      sceneReady: true,
+      playerX: this.player.x,
+      playerY: this.player.y,
+      lastEvent: 'scene-ready',
+    })
   }
 
   update(time: number) {
@@ -208,6 +217,7 @@ export class RaceScene extends Phaser.Scene {
     if ((jumpPressed || this.jumpQueued) && grounded) {
       this.player.setVelocityY(-565)
       this.jumpQueued = false
+      updateQaState({ lastEvent: 'jump' })
     }
 
     const abilityPressed = Phaser.Input.Keyboard.JustDown(this.abilityKey)
@@ -217,6 +227,7 @@ export class RaceScene extends Phaser.Scene {
 
     this.updateBots(time)
     this.updateHud(time)
+    this.updateQaTelemetry()
   }
 
   private createObstacles() {
@@ -285,6 +296,7 @@ export class RaceScene extends Phaser.Scene {
       if (index <= this.activeCheckpoint) return
 
       this.activeCheckpoint = index
+      updateQaState({ checkpoint: index, lastEvent: 'checkpoint' })
       this.respawnX = Number(checkpoint.getData('respawnX'))
       this.respawnY = Number(checkpoint.getData('respawnY'))
       checkpoint.setTint(0x63d875)
@@ -298,6 +310,7 @@ export class RaceScene extends Phaser.Scene {
     this.player.setVelocity(0, 0)
     this.player.setAlpha(0.45)
     this.time.delayedCall(180, () => this.player.setAlpha(1))
+    updateQaState({ lastEvent: 'respawn' })
     this.showRaceToast(text[this.language].recovered)
   }
 
@@ -333,6 +346,7 @@ export class RaceScene extends Phaser.Scene {
     this.player.setVelocityX(Math.max(this.player.body!.velocity.x, 430))
     this.abilityReadyAt = time + leo.ability.cooldownMs
     this.abilityQueued = false
+    updateQaState({ abilityReadyAt: this.abilityReadyAt, lastEvent: 'leo-super-jump' })
 
     this.player.setTint(0xffd43b)
     this.time.delayedCall(240, () => this.player.clearTint())
@@ -379,6 +393,24 @@ export class RaceScene extends Phaser.Scene {
 
     this.abilityText.setText(`👑 ${ability}: ${state}`)
     this.abilityText.setColor(remaining <= 0 ? '#158f38' : '#c16a13')
+  }
+
+  private updateQaTelemetry() {
+    const body = this.player.body as Phaser.Physics.Arcade.Body
+    const place = 1 + this.bots.filter((bot) => bot.x > this.player.x).length
+    updateQaState({
+      playerX: this.player.x,
+      playerY: this.player.y,
+      velocityX: body.velocity.x,
+      velocityY: body.velocity.y,
+      grounded: body.blocked.down,
+      stars: this.stars,
+      checkpoint: this.activeCheckpoint,
+      position: place,
+      progress: Phaser.Math.Clamp(this.player.x / FINISH_X, 0, 1),
+      abilityReadyAt: this.abilityReadyAt,
+      finished: this.finished,
+    })
   }
 
   private createRacer(x: number, y: number, texture: string, width: number, height: number) {
@@ -551,6 +583,7 @@ export class RaceScene extends Phaser.Scene {
   private completeRace() {
     if (this.finished) return
     this.finished = true
+    updateQaState({ finished: true, lastEvent: 'finish' })
     this.player.setVelocity(0, 0)
     this.bots.forEach((bot) => bot.setVelocityX(0))
 

@@ -26,14 +26,14 @@ const copy = {
 } satisfies Record<Language, Record<string, string>>
 
 const heroes = [
-  ['Leo', '/assets/characters/leo.svg'],
-  ['Pandy', '/assets/characters/pandy.svg'],
-  ['Bibi', '/assets/characters/bibi.svg'],
-  ['Foxy', '/assets/characters/foxy.svg'],
-  ['Max', '/assets/characters/max.svg'],
-  ['Mimi', '/assets/characters/mimi.svg'],
-  ['Dino', '/assets/characters/dino.svg'],
-  ['B-01', '/assets/characters/b01.svg'],
+  ['Leo', './assets/characters/leo.svg'],
+  ['Pandy', './assets/characters/pandy.svg'],
+  ['Bibi', './assets/characters/bibi.svg'],
+  ['Foxy', './assets/characters/foxy.svg'],
+  ['Max', './assets/characters/max.svg'],
+  ['Mimi', './assets/characters/mimi.svg'],
+  ['Dino', './assets/characters/dino.svg'],
+  ['B-01', './assets/characters/b01.svg'],
 ] as const
 
 export default function App() {
@@ -67,11 +67,11 @@ export default function App() {
   return (
     <main className="home">
       <section className="hero-card">
-        <img className="game-logo" src="/assets/ui/kiddy-clash-logo.svg" alt="Kiddy Clash" />
+        <img className="game-logo" src="./assets/ui/kiddy-clash-logo.svg" alt="Kiddy Clash" />
         <p className="subtitle">{t.subtitle}</p>
 
         <div className="hero-row">
-          <img className="lead-hero" src="/assets/characters/leo.svg" alt="Leo" />
+          <img className="lead-hero" src="./assets/characters/leo.svg" alt="Leo" />
           <div>
             <span className="mode-pill">🤖 {t.versus}</span>
             <h2>{t.versus}</h2>

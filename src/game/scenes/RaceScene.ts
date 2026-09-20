@@ -251,7 +251,16 @@ export class RaceScene extends Phaser.Scene {
     graphics.clear()
 
     graphics.fillStyle(0xffd43b)
-    graphics.fillStar(24, 24, 5, 23, 11)
+    const starPoints: Phaser.Math.Vector2[] = []
+    for (let i = 0; i < 10; i += 1) {
+      const angle = -Math.PI / 2 + (i * Math.PI) / 5
+      const radius = i % 2 === 0 ? 23 : 11
+      starPoints.push(new Phaser.Math.Vector2(
+        24 + Math.cos(angle) * radius,
+        24 + Math.sin(angle) * radius,
+      ))
+    }
+    graphics.fillPoints(starPoints, true)
     graphics.generateTexture('star', 48, 48)
     graphics.clear()
 

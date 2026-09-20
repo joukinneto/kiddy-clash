@@ -51,7 +51,7 @@ test('keyboard moves Leo, jumps and activates Super Jump', async ({ page }, test
   const start = await qaState(page)
 
   await page.keyboard.down('ArrowRight')
-  await page.waitForTimeout(650)
+  await page.waitForTimeout(280)
   await page.keyboard.up('ArrowRight')
 
   const moved = await qaState(page)

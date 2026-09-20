@@ -12,6 +12,7 @@ const copy = {
     language: 'Idioma',
     tip: 'Corra, pule, colete estrelas e chegue antes da IA.',
     back: 'Voltar ao menu',
+    crew: 'Conheça a galera',
   },
   'en-US': {
     subtitle: 'Little Heroes Adventure',
@@ -20,8 +21,20 @@ const copy = {
     language: 'Language',
     tip: 'Run, jump, collect stars and finish ahead of the AI.',
     back: 'Back to menu',
+    crew: 'Meet the crew',
   },
 } satisfies Record<Language, Record<string, string>>
+
+const heroes = [
+  ['Leo', '/assets/characters/leo.svg'],
+  ['Pandy', '/assets/characters/pandy.svg'],
+  ['Bibi', '/assets/characters/bibi.svg'],
+  ['Foxy', '/assets/characters/foxy.svg'],
+  ['Max', '/assets/characters/max.svg'],
+  ['Mimi', '/assets/characters/mimi.svg'],
+  ['Dino', '/assets/characters/dino.svg'],
+  ['B-01', '/assets/characters/b01.svg'],
+] as const
 
 export default function App() {
   const [language, setLanguage] = useState<Language>('pt-BR')
@@ -54,19 +67,34 @@ export default function App() {
   return (
     <main className="home">
       <section className="hero-card">
-        <div className="logo-mark">👑</div>
-        <h1>KIDDY <span>CLASH</span></h1>
+        <img className="game-logo" src="/assets/ui/kiddy-clash-logo.svg" alt="Kiddy Clash" />
         <p className="subtitle">{t.subtitle}</p>
+
         <div className="hero-row">
-          <div className="mascot">🦁</div>
+          <img className="lead-hero" src="/assets/characters/leo.svg" alt="Leo" />
           <div>
+            <span className="mode-pill">🤖 {t.versus}</span>
             <h2>{t.versus}</h2>
             <p>{t.tip}</p>
           </div>
         </div>
+
         <button className="play-button" onClick={() => setPlaying(true)}>
           ▶ {t.start}
         </button>
+
+        <div className="crew-section">
+          <h3>{t.crew}</h3>
+          <div className="hero-grid">
+            {heroes.map(([name, src]) => (
+              <div className="hero-chip" key={name}>
+                <img src={src} alt={name} />
+                <span>{name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div className="language-row" aria-label={t.language}>
           <button
             className={language === 'pt-BR' ? 'active' : ''}
@@ -81,6 +109,7 @@ export default function App() {
             🇺🇸 EN
           </button>
         </div>
+
         <small>Web/PWA • iOS • Android • Windows</small>
       </section>
     </main>

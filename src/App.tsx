@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type Phaser from 'phaser'
 import { createKiddyGame } from './game/createGame'
-
-type Language = 'pt-BR' | 'en-US'
+import { HEROES, abilityLabel, type GameLanguage } from './game/domain/heroes'
 
 const copy = {
   'pt-BR': {
@@ -10,7 +9,7 @@ const copy = {
     versus: 'Contra o Computador',
     start: 'Jogar agora',
     language: 'Idioma',
-    tip: 'Corra, pule, colete estrelas e chegue antes da IA.',
+    tip: 'Corra, pule, use o Super Salto e chegue antes da IA.',
     back: 'Voltar ao menu',
     crew: 'Conheça a galera',
   },
@@ -19,25 +18,14 @@ const copy = {
     versus: 'VS Computer',
     start: 'Play now',
     language: 'Language',
-    tip: 'Run, jump, collect stars and finish ahead of the AI.',
+    tip: 'Run, jump, use Super Jump and finish ahead of the AI.',
     back: 'Back to menu',
     crew: 'Meet the crew',
   },
-} satisfies Record<Language, Record<string, string>>
-
-const heroes = [
-  ['Leo', './assets/characters/leo.svg'],
-  ['Pandy', './assets/characters/pandy.svg'],
-  ['Bibi', './assets/characters/bibi.svg'],
-  ['Foxy', './assets/characters/foxy.svg'],
-  ['Max', './assets/characters/max.svg'],
-  ['Mimi', './assets/characters/mimi.svg'],
-  ['Dino', './assets/characters/dino.svg'],
-  ['B-01', './assets/characters/b01.svg'],
-] as const
+} satisfies Record<GameLanguage, Record<string, string>>
 
 export default function App() {
-  const [language, setLanguage] = useState<Language>('pt-BR')
+  const [language, setLanguage] = useState<GameLanguage>('pt-BR')
   const [playing, setPlaying] = useState(false)
   const gameRef = useRef<Phaser.Game | null>(null)
   const t = copy[language]
@@ -86,10 +74,11 @@ export default function App() {
         <div className="crew-section">
           <h3>{t.crew}</h3>
           <div className="hero-grid">
-            {heroes.map(([name, src]) => (
-              <div className="hero-chip" key={name}>
-                <img src={src} alt={name} />
-                <span>{name}</span>
+            {HEROES.map((hero) => (
+              <div className="hero-chip" key={hero.id}>
+                <img src={hero.asset} alt={hero.name} />
+                <span>{hero.name}</span>
+                <small>{abilityLabel(hero, language)}</small>
               </div>
             ))}
           </div>

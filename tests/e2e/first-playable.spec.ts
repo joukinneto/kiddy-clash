@@ -86,13 +86,9 @@ test('mobile landscape touch controls move and jump', async ({ page }, testInfo)
   expect(box).not.toBeNull()
   if (!box) return
 
-  const scale = Math.min(box.width / 1280, box.height / 720)
-  const offsetX = box.x + (box.width - 1280 * scale) / 2
-  const offsetY = box.y + (box.height - 720 * scale) / 2
-
-  const rightX = offsetX + 235 * scale
-  const controlsY = offsetY + 610 * scale
-  const jumpX = offsetX + 1140 * scale
+  const rightX = box.x + (235 / 1280) * box.width
+  const controlsY = box.y + (610 / 720) * box.height
+  const jumpX = box.x + (1140 / 1280) * box.width
 
   const start = await qaState(page)
 

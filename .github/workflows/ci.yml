@@ -46,6 +46,15 @@ jobs:
       - name: Browser gameplay QA
         run: npm run test:e2e
 
+      - name: Upload visual QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kiddy-clash-visual-qa
+          path: qa-screenshots/**
+          if-no-files-found: warn
+          retention-days: 14
+
   android:
     name: Android native wrapper
     runs-on: ubuntu-24.04

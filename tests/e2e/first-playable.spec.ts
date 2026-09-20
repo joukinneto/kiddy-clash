@@ -1,3 +1,4 @@
+import { mkdir } from 'node:fs/promises'
 import { expect, test } from '@playwright/test'
 
 type QaState = {
@@ -106,4 +107,24 @@ test('mobile landscape touch controls move and jump', async ({ page }, testInfo)
 
   const jumped = await qaState(page)
   expect(jumped.velocityY).toBeLessThan(0)
+})
+
+test('capture rendered visual QA evidence', async ({ page }, testInfo) => {
+  await mkdir('qa-screenshots', { recursive: true })
+
+  await page.goto('/?qa=1')
+  await expect(page.getByAltText('Kiddy Clash')).toBeVisible()
+  await page.screenshot({
+    path: `qa-screenshots/${testInfo.project.name}-home.png`,
+    fullPage: true,
+  })
+
+  await page.getByRole('button', { name: /Jogar agora/i }).click()
+  await page.waitForFunction(() => window.__KIDDY_QA__?.sceneReady === true)
+  await page.waitForTimeout(350)
+
+  await page.screenshot({
+    path: `qa-screenshots/${testInfo.project.name}-gameplay.png`,
+    fullPage: true,
+  })
 })

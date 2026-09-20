@@ -19,6 +19,7 @@ export default defineConfig({
       name: 'chromium-mobile-landscape',
       use: {
         ...devices['iPhone 15'],
+        browserName: 'chromium',
         viewport: { width: 844, height: 390 },
         isMobile: true,
         hasTouch: true,

@@ -1,5 +1,15 @@
 import Phaser from 'phaser'
 import { HERO_BY_ID, abilityLabel, type GameLanguage } from '../domain/heroes'
+import {
+  BOT_JUMP_ZONES,
+  BUMPER_CRATES,
+  CHECKPOINTS,
+  FINISH_X,
+  LEVEL_WIDTH,
+  MUD_ZONES,
+  PIT_ZONES,
+  TRAMPOLINES,
+} from '../domain/levelConfig'
 
 const text = {
   'pt-BR': {
@@ -14,6 +24,9 @@ const text = {
     ready: 'PRONTO',
     seconds: 's',
     super: 'SUPER',
+    checkpoint: 'Checkpoint',
+    progress: 'Progresso',
+    recovered: 'De volta à corrida!',
   },
   'en-US': {
     objective: 'Collect stars and finish first!',
@@ -27,6 +40,9 @@ const text = {
     ready: 'READY',
     seconds: 's',
     super: 'SUPER',
+    checkpoint: 'Checkpoint',
+    progress: 'Progress',
+    recovered: 'Back in the race!',
   },
 } as const
 
@@ -42,10 +58,18 @@ export class RaceScene extends Phaser.Scene {
   private finished = false
   private startTime = 0
   private abilityReadyAt = 0
+  private lastObstacleHitAt = 0
+  private lastTrampolineAt = 0
+  private activeCheckpoint = 0
+  private respawnX = 180
+  private respawnY = 520
   private starsText!: Phaser.GameObjects.Text
   private timerText!: Phaser.GameObjects.Text
   private positionText!: Phaser.GameObjects.Text
   private abilityText!: Phaser.GameObjects.Text
+  private checkpointText!: Phaser.GameObjects.Text
+  private progressText!: Phaser.GameObjects.Text
+  private progressFill!: Phaser.GameObjects.Rectangle
   private leftHeld = false
   private rightHeld = false
   private jumpQueued = false
@@ -66,22 +90,27 @@ export class RaceScene extends Phaser.Scene {
 
   create() {
     const t = text[this.language]
-    this.physics.world.setBounds(0, 0, 3600, 720)
-    this.cameras.main.setBounds(0, 0, 3600, 720)
+    this.physics.world.setBounds(0, 0, LEVEL_WIDTH, 720)
+    this.physics.world.setBoundsCollision(true, true, true, false)
+    this.cameras.main.setBounds(0, 0, LEVEL_WIDTH, 720)
 
     this.createTextures()
     this.createWorldArt()
 
     const ground = this.physics.add.staticGroup()
-    for (let x = 0; x < 3600; x += 320) {
-      const y = x > 1850 && x < 2200 ? 610 : 650
-      ground.create(x + 160, y, 'ground').refreshBody()
+    for (let x = 0; x < LEVEL_WIDTH; x += 320) {
+      const centerX = x + 160
+      const insidePit = PIT_ZONES.some(({ from, to }) => centerX >= from && centerX <= to)
+      if (!insidePit) {
+        ground.create(centerX, 650, 'ground').refreshBody()
+      }
     }
 
     ground.create(880, 515, 'platform').refreshBody()
     ground.create(1420, 465, 'platform').refreshBody()
+    ground.create(1995, 505, 'platform').refreshBody()
     ground.create(2460, 515, 'platform').refreshBody()
-    ground.create(2820, 430, 'platform').refreshBody()
+    ground.create(2830, 430, 'platform').refreshBody()
 
     this.player = this.createRacer(180, 548, 'leo', 86, 98)
     this.player.setBounce(0.02)
@@ -95,6 +124,9 @@ export class RaceScene extends Phaser.Scene {
 
     this.physics.add.collider(this.player, ground)
     this.bots.forEach((bot) => this.physics.add.collider(bot, ground))
+
+    this.createObstacles()
+    this.createCheckpoints()
 
     const stars = this.physics.add.staticGroup()
     ;[480, 760, 1020, 1300, 1540, 1820, 2320, 2600, 2920, 3200].forEach((x, index) => {
@@ -111,14 +143,14 @@ export class RaceScene extends Phaser.Scene {
       this.starsText.setText(`⭐ ${t.stars}: ${this.stars}`)
     })
 
-    const finish = this.physics.add.staticImage(3420, 505, 'finish')
+    const finish = this.physics.add.staticImage(FINISH_X, 505, 'finish')
     finish.setOrigin(0.5, 0.5)
     this.physics.add.overlap(this.player, finish, () => this.completeRace())
     this.bots.forEach((bot) => {
       this.physics.add.overlap(bot, finish, () => bot.setVelocityX(0))
     })
 
-    this.add.text(3390, 320, `🏁 ${t.finish}`, {
+    this.add.text(FINISH_X - 30, 320, `🏁 ${t.finish}`, {
       fontFamily: 'Arial Rounded MT Bold, sans-serif',
       fontSize: '34px',
       color: '#17324d',
@@ -140,6 +172,11 @@ export class RaceScene extends Phaser.Scene {
   update(time: number) {
     if (this.finished) return
 
+    if (this.player.y > 735) {
+      this.respawnPlayer()
+      return
+    }
+
     const keys = this.input.keyboard!.keys
     const a = keys[Phaser.Input.Keyboard.KeyCodes.A]
     const d = keys[Phaser.Input.Keyboard.KeyCodes.D]
@@ -148,15 +185,18 @@ export class RaceScene extends Phaser.Scene {
 
     const left = this.cursors.left.isDown || a?.isDown || this.leftHeld
     const right = this.cursors.right.isDown || d?.isDown || this.rightHeld
+    const inMud = MUD_ZONES.some(({ from, to }) => this.player.x >= from && this.player.x <= to)
+    const forwardSpeed = inMud ? 255 : 385
+    const reverseSpeed = inMud ? -220 : -330
 
     if (left && !right) {
-      this.player.setVelocityX(-330)
+      this.player.setVelocityX(reverseSpeed)
       this.player.setFlipX(true)
     } else if (right && !left) {
-      this.player.setVelocityX(385)
+      this.player.setVelocityX(forwardSpeed)
       this.player.setFlipX(false)
     } else {
-      this.player.setVelocityX(this.player.body!.velocity.x * 0.82)
+      this.player.setVelocityX(this.player.body!.velocity.x * (inMud ? 0.72 : 0.82))
     }
 
     const grounded = (this.player.body as Phaser.Physics.Arcade.Body).blocked.down
@@ -177,6 +217,110 @@ export class RaceScene extends Phaser.Scene {
 
     this.updateBots(time)
     this.updateHud(time)
+  }
+
+  private createObstacles() {
+    const crates = this.physics.add.staticGroup()
+    BUMPER_CRATES.forEach(({ x, y }) => {
+      crates.create(x, y, 'crate').refreshBody()
+    })
+
+    this.physics.add.collider(this.player, crates, (playerObject) => {
+      if (this.time.now < this.lastObstacleHitAt + 550) return
+      this.lastObstacleHitAt = this.time.now
+
+      const racer = playerObject as Phaser.Physics.Arcade.Sprite
+      racer.setVelocityX(-250)
+      racer.setVelocityY(-260)
+      racer.setTint(0xffc46b)
+      this.time.delayedCall(220, () => racer.clearTint())
+      this.showRaceToast('↩️')
+    })
+
+    this.bots.forEach((bot) => this.physics.add.collider(bot, crates))
+
+    const trampolines = this.physics.add.staticGroup()
+    TRAMPOLINES.forEach(({ x, y }) => {
+      trampolines.create(x, y, 'trampoline').refreshBody()
+    })
+
+    this.physics.add.overlap(this.player, trampolines, () => {
+      if (this.time.now < this.lastTrampolineAt + 500) return
+      this.lastTrampolineAt = this.time.now
+      this.player.setVelocityY(-760)
+      this.player.setVelocityX(Math.max(this.player.body!.velocity.x, 390))
+      this.showRaceToast('🚀')
+    })
+
+    this.bots.forEach((bot) => {
+      this.physics.add.overlap(bot, trampolines, () => {
+        const body = bot.body as Phaser.Physics.Arcade.Body
+        if (body.velocity.y >= 0) bot.setVelocityY(-690)
+      })
+    })
+  }
+
+  private createCheckpoints() {
+    const checkpoints = this.physics.add.staticGroup()
+
+    CHECKPOINTS.forEach((checkpoint, index) => {
+      const gate = checkpoints.create(checkpoint.x, 510, 'checkpoint') as Phaser.Physics.Arcade.Image
+      gate.setData('checkpointIndex', index + 1)
+      gate.setData('respawnX', checkpoint.respawnX)
+      gate.setData('respawnY', checkpoint.respawnY)
+      gate.refreshBody()
+
+      this.add.text(checkpoint.x, 400, `★ ${index + 1}`, {
+        fontFamily: 'Arial Rounded MT Bold, sans-serif',
+        fontSize: '20px',
+        color: '#ffffff',
+        backgroundColor: '#267ee6bb',
+        padding: { x: 8, y: 5 },
+      }).setOrigin(0.5)
+    })
+
+    this.physics.add.overlap(this.player, checkpoints, (_, checkpointObject) => {
+      const checkpoint = checkpointObject as Phaser.Physics.Arcade.Image
+      const index = Number(checkpoint.getData('checkpointIndex'))
+      if (index <= this.activeCheckpoint) return
+
+      this.activeCheckpoint = index
+      this.respawnX = Number(checkpoint.getData('respawnX'))
+      this.respawnY = Number(checkpoint.getData('respawnY'))
+      checkpoint.setTint(0x63d875)
+      this.checkpointText.setText(`🚩 ${text[this.language].checkpoint}: ${index}/${CHECKPOINTS.length}`)
+      this.showRaceToast(`🚩 ${index}/${CHECKPOINTS.length}`)
+    })
+  }
+
+  private respawnPlayer() {
+    this.player.setPosition(this.respawnX, this.respawnY)
+    this.player.setVelocity(0, 0)
+    this.player.setAlpha(0.45)
+    this.time.delayedCall(180, () => this.player.setAlpha(1))
+    this.showRaceToast(text[this.language].recovered)
+  }
+
+  private showRaceToast(message: string) {
+    const toast = this.add.text(640, 135, message, {
+      fontFamily: 'Arial Rounded MT Bold, sans-serif',
+      fontSize: '24px',
+      color: '#ffffff',
+      backgroundColor: '#17324dcc',
+      padding: { x: 16, y: 9 },
+    })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(45)
+
+    this.tweens.add({
+      targets: toast,
+      y: 112,
+      alpha: 0,
+      duration: 850,
+      ease: 'Quad.Out',
+      onComplete: () => toast.destroy(),
+    })
   }
 
   private useLeoAbility(time: number) {
@@ -223,6 +367,10 @@ export class RaceScene extends Phaser.Scene {
     const place = 1 + this.bots.filter((bot) => bot.x > this.player.x).length
     this.positionText.setText(`🏆 ${text[this.language].position}: ${place}/4`)
 
+    const progress = Phaser.Math.Clamp(this.player.x / FINISH_X, 0, 1)
+    this.progressFill.setScale(progress, 1)
+    this.progressText.setText(`${text[this.language].progress}: ${Math.round(progress * 100)}%`)
+
     const remaining = Math.max(0, this.abilityReadyAt - time)
     const ability = abilityLabel(leo, this.language)
     const state = remaining <= 0
@@ -244,29 +392,26 @@ export class RaceScene extends Phaser.Scene {
   }
 
   private updateBots(time: number) {
-    const jumpZones = [
-      [760, 910],
-      [1360, 1495],
-      [1840, 2000],
-      [2370, 2520],
-      [2750, 2860],
-    ] as const
-
     this.bots.forEach((bot, index) => {
+      if (bot.y > 735) {
+        bot.setPosition(Math.max(80, bot.x - 260), 500)
+        bot.setVelocity(0, 0)
+      }
+
       const body = bot.body as Phaser.Physics.Arcade.Body
       const speed = 285 + index * 13 + Math.sin(time / 700 + index) * 12
       bot.setVelocityX(speed)
 
-      const needsJump = jumpZones.some(([from, to]) => bot.x > from && bot.x < to)
+      const needsJump = BOT_JUMP_ZONES.some(([from, to]) => bot.x > from && bot.x < to)
       if (body.blocked.down && needsJump) {
-        const jumpStrength = 500 + index * 12
+        const jumpStrength = 520 + index * 14
         bot.setVelocityY(-jumpStrength)
       }
     })
   }
 
   private createWorldArt() {
-    this.add.rectangle(1800, 360, 3600, 720, 0x67c4ff).setDepth(-20)
+    this.add.rectangle(1800, 360, LEVEL_WIDTH, 720, 0x67c4ff).setDepth(-20)
 
     for (let i = 0; i < 16; i += 1) {
       const x = 150 + i * 245
@@ -289,6 +434,14 @@ export class RaceScene extends Phaser.Scene {
       if (index % 2 === 0) {
         this.add.rectangle(x, y + 60, 16, 95, 0x9be9ff, 0.75).setDepth(-16)
       }
+    })
+
+    PIT_ZONES.forEach(({ from, to }) => {
+      this.add.ellipse((from + to) / 2, 665, to - from, 46, 0x4c7fa0, 0.5).setDepth(-12)
+    })
+
+    MUD_ZONES.forEach(({ from, to }) => {
+      this.add.rectangle((from + to) / 2, 607, to - from, 24, 0x8c633f, 0.8).setDepth(1)
     })
 
     this.add.rectangle(3090, 155, 120, 95, 0xe9f4ff).setDepth(-13)
@@ -331,34 +484,68 @@ export class RaceScene extends Phaser.Scene {
       .setDepth(20)
       .setStrokeStyle(3, 0xcde9f7)
 
-    this.add.text(185, 20, `🏝️ ${t.race}`, {
+    this.add.text(165, 17, `🏝️ ${t.race}`, {
       fontFamily: 'Arial Rounded MT Bold, sans-serif',
-      fontSize: '20px',
+      fontSize: '19px',
       color: '#267ee6',
       fontStyle: 'bold',
     }).setScrollFactor(0).setDepth(21)
 
     this.abilityText = this.add.text(
-      185,
-      50,
+      165,
+      45,
       `👑 ${abilityLabel(leo, this.language)}: ${t.ready}`,
       {
         fontFamily: 'Arial Rounded MT Bold, sans-serif',
-        fontSize: '15px',
+        fontSize: '14px',
         color: '#158f38',
         fontStyle: 'bold',
       },
     ).setScrollFactor(0).setDepth(21)
 
-    this.add.text(640, 24, t.objective, {
+    this.add.text(635, 17, t.objective, {
       fontFamily: 'Arial Rounded MT Bold, sans-serif',
-      fontSize: '22px',
+      fontSize: '20px',
       color: '#17324d',
     }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(21)
 
-    this.starsText = this.add.text(1025, 17, `⭐ ${t.stars}: 0`, this.hudStyle()).setScrollFactor(0).setDepth(21)
-    this.timerText = this.add.text(1025, 48, '⏱ 00:00', this.hudStyle()).setScrollFactor(0).setDepth(21)
-    this.positionText = this.add.text(1115, 48, `🏆 ${t.position}: 1/4`, this.hudStyle()).setScrollFactor(0).setDepth(21)
+    const progressTrack = this.add.rectangle(430, 54, 405, 13, 0xc8dce8)
+      .setOrigin(0, 0.5)
+      .setScrollFactor(0)
+      .setDepth(21)
+
+    this.progressFill = this.add.rectangle(430, 54, 405, 13, 0x48c75b)
+      .setOrigin(0, 0.5)
+      .setScrollFactor(0)
+      .setDepth(22)
+      .setScale(0, 1)
+
+    progressTrack.setStrokeStyle(2, 0x8eb4ca)
+
+    CHECKPOINTS.forEach((checkpoint) => {
+      const markerX = 430 + (checkpoint.x / FINISH_X) * 405
+      this.add.circle(markerX, 54, 5, 0x267ee6)
+        .setScrollFactor(0)
+        .setDepth(23)
+    })
+
+    this.progressText = this.add.text(640, 66, `${t.progress}: 0%`, {
+      fontFamily: 'Arial Rounded MT Bold, sans-serif',
+      fontSize: '11px',
+      color: '#4b6d82',
+      fontStyle: 'bold',
+    }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(23)
+
+    this.checkpointText = this.add.text(850, 18, `🚩 ${t.checkpoint}: 0/${CHECKPOINTS.length}`, {
+      fontFamily: 'Arial Rounded MT Bold, sans-serif',
+      fontSize: '14px',
+      color: '#267ee6',
+      fontStyle: 'bold',
+    }).setScrollFactor(0).setDepth(21)
+
+    this.starsText = this.add.text(1010, 17, `⭐ ${t.stars}: 0`, this.hudStyle()).setScrollFactor(0).setDepth(21)
+    this.timerText = this.add.text(1010, 48, '⏱ 00:00', this.hudStyle()).setScrollFactor(0).setDepth(21)
+    this.positionText = this.add.text(1105, 48, `🏆 ${t.position}: 1/4`, this.hudStyle()).setScrollFactor(0).setDepth(21)
   }
 
   private completeRace() {
@@ -370,37 +557,42 @@ export class RaceScene extends Phaser.Scene {
     const t = text[this.language]
     const place = 1 + this.bots.filter((bot) => bot.x > this.player.x).length
 
-    const panel = this.add.rectangle(640, 360, 650, 285, 0xffffff, 0.96)
+    const panel = this.add.rectangle(640, 360, 690, 300, 0xffffff, 0.96)
       .setScrollFactor(0)
       .setDepth(50)
       .setStrokeStyle(7, 0x2688e8)
 
-    const hero = this.add.image(430, 360, 'leo')
+    const hero = this.add.image(415, 360, 'leo')
       .setDisplaySize(128, 148)
       .setScrollFactor(0)
       .setDepth(51)
 
-    const title = this.add.text(700, 285, t.win, {
+    const title = this.add.text(710, 275, t.win, {
       fontFamily: 'Arial Rounded MT Bold, sans-serif',
-      fontSize: '48px',
+      fontSize: '46px',
       color: '#ff8b22',
       fontStyle: 'bold',
     }).setOrigin(0.5).setScrollFactor(0).setDepth(51)
 
-    const placement = this.add.text(700, 345, `🏆 ${place}/4`, {
+    const placement = this.add.text(710, 335, `🏆 ${place}/4`, {
       fontFamily: 'Arial Rounded MT Bold, sans-serif',
-      fontSize: '34px',
+      fontSize: '32px',
       color: '#267ee6',
       fontStyle: 'bold',
     }).setOrigin(0.5).setScrollFactor(0).setDepth(51)
 
-    const result = this.add.text(700, 395, `⭐ ${this.stars}   •   XP +${50 + this.stars * 5}`, {
-      fontFamily: 'Arial Rounded MT Bold, sans-serif',
-      fontSize: '25px',
-      color: '#17324d',
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(51)
+    const result = this.add.text(
+      710,
+      390,
+      `⭐ ${this.stars}   •   🚩 ${this.activeCheckpoint}/${CHECKPOINTS.length}   •   XP +${50 + this.stars * 5}`,
+      {
+        fontFamily: 'Arial Rounded MT Bold, sans-serif',
+        fontSize: '22px',
+        color: '#17324d',
+      },
+    ).setOrigin(0.5).setScrollFactor(0).setDepth(51)
 
-    const replay = this.add.text(700, 452, `▶ ${t.replay}`, {
+    const replay = this.add.text(710, 452, `▶ ${t.replay}`, {
       fontFamily: 'Arial Rounded MT Bold, sans-serif',
       fontSize: '21px',
       color: '#2688e8',
@@ -473,6 +665,33 @@ export class RaceScene extends Phaser.Scene {
     graphics.generateTexture('platform', 230, 58)
     graphics.clear()
 
+    graphics.fillStyle(0xd6944f)
+    graphics.fillRoundedRect(0, 0, 62, 62, 8)
+    graphics.lineStyle(5, 0x8b5a2b)
+    graphics.strokeRoundedRect(0, 0, 62, 62, 8)
+    graphics.beginPath()
+    graphics.moveTo(10, 10)
+    graphics.lineTo(52, 52)
+    graphics.moveTo(52, 10)
+    graphics.lineTo(10, 52)
+    graphics.strokePath()
+    graphics.generateTexture('crate', 62, 62)
+    graphics.clear()
+
+    graphics.fillStyle(0x2d83dd)
+    graphics.fillRoundedRect(0, 0, 92, 22, 10)
+    graphics.fillStyle(0xffd43b)
+    graphics.fillTriangle(34, 17, 46, 3, 58, 17)
+    graphics.generateTexture('trampoline', 92, 22)
+    graphics.clear()
+
+    graphics.fillStyle(0x267ee6, 0.7)
+    graphics.fillRoundedRect(0, 0, 20, 150, 8)
+    graphics.fillStyle(0xffffff, 0.85)
+    graphics.fillCircle(10, 24, 8)
+    graphics.generateTexture('checkpoint', 20, 150)
+    graphics.clear()
+
     graphics.fillStyle(0xffd43b)
     const starPoints: Phaser.Math.Vector2[] = []
     for (let i = 0; i < 10; i += 1) {
@@ -506,7 +725,7 @@ export class RaceScene extends Phaser.Scene {
   private hudStyle(): Phaser.Types.GameObjects.Text.TextStyle {
     return {
       fontFamily: 'Arial Rounded MT Bold, sans-serif',
-      fontSize: '17px',
+      fontSize: '16px',
       color: '#17324d',
       fontStyle: 'bold',
     }

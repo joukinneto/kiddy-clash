@@ -7,6 +7,7 @@ import {
   CHECKPOINTS,
   FINISH_X,
   LEVEL_WIDTH,
+  START_X,
   MUD_ZONES,
   PIT_ZONES,
   TRAMPOLINES,
@@ -62,7 +63,7 @@ export class RaceScene extends Phaser.Scene {
   private lastObstacleHitAt = 0
   private lastTrampolineAt = 0
   private activeCheckpoint = 0
-  private respawnX = 180
+  private respawnX = START_X
   private respawnY = 520
   private starsText!: Phaser.GameObjects.Text
   private timerText!: Phaser.GameObjects.Text
@@ -114,14 +115,14 @@ export class RaceScene extends Phaser.Scene {
     ground.create(2460, 515, 'platform').refreshBody()
     ground.create(2830, 430, 'platform').refreshBody()
 
-    this.player = this.createRacer(180, 548, 'leo', 86, 98)
+    this.player = this.createRacer(START_X, 548, 'leo', 86, 98)
     this.player.setBounce(0.02)
     this.player.setMaxVelocity(520, 980)
 
     this.bots = [
-      this.createRacer(118, 552, 'bibi', 74, 92),
-      this.createRacer(82, 550, 'max', 78, 92),
-      this.createRacer(48, 550, 'foxy', 78, 92),
+      this.createRacer(START_X - 55, 552, 'bibi', 74, 92),
+      this.createRacer(START_X - 110, 550, 'max', 78, 92),
+      this.createRacer(START_X - 165, 550, 'foxy', 78, 92),
     ]
 
     this.physics.add.collider(this.player, ground)
@@ -166,7 +167,7 @@ export class RaceScene extends Phaser.Scene {
     this.abilityKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT)
 
     this.createHud()
-    this.createTouchControls()
+    if (this.sys.game.device.input.touch) this.createTouchControls()
     this.startTime = this.time.now
 
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08, -180, 35)
@@ -381,7 +382,7 @@ export class RaceScene extends Phaser.Scene {
     const place = 1 + this.bots.filter((bot) => bot.x > this.player.x).length
     this.positionText.setText(`🏆 ${text[this.language].position}: ${place}/4`)
 
-    const progress = Phaser.Math.Clamp(this.player.x / FINISH_X, 0, 1)
+    const progress = Phaser.Math.Clamp((this.player.x - START_X) / (FINISH_X - START_X), 0, 1)
     this.progressFill.setScale(progress, 1)
     this.progressText.setText(`${text[this.language].progress}: ${Math.round(progress * 100)}%`)
 
@@ -407,7 +408,7 @@ export class RaceScene extends Phaser.Scene {
       stars: this.stars,
       checkpoint: this.activeCheckpoint,
       position: place,
-      progress: Phaser.Math.Clamp(this.player.x / FINISH_X, 0, 1),
+      progress: Phaser.Math.Clamp((this.player.x - START_X) / (FINISH_X - START_X), 0, 1),
       abilityReadyAt: this.abilityReadyAt,
       finished: this.finished,
     })
@@ -555,7 +556,7 @@ export class RaceScene extends Phaser.Scene {
     progressTrack.setStrokeStyle(2, 0x8eb4ca)
 
     CHECKPOINTS.forEach((checkpoint) => {
-      const markerX = 430 + (checkpoint.x / FINISH_X) * 405
+      const markerX = 430 + ((checkpoint.x - START_X) / (FINISH_X - START_X)) * 405
       this.add.circle(markerX, 54, 5, 0x267ee6)
         .setScrollFactor(0)
         .setDepth(23)
@@ -640,18 +641,18 @@ export class RaceScene extends Phaser.Scene {
 
   private createTouchControls() {
     const t = text[this.language]
-    const left = this.add.circle(105, 610, 56, 0xffffff, 0.72).setScrollFactor(0).setDepth(30).setInteractive()
-    const right = this.add.circle(235, 610, 56, 0xffffff, 0.72).setScrollFactor(0).setDepth(30).setInteractive()
+    const left = this.add.circle(78, 625, 46, 0xffffff, 0.42).setScrollFactor(0).setDepth(30).setInteractive()
+    const right = this.add.circle(185, 625, 46, 0xffffff, 0.42).setScrollFactor(0).setDepth(30).setInteractive()
     const ability = this.add.circle(980, 610, 61, 0xff9c2f, 0.94).setScrollFactor(0).setDepth(30).setInteractive()
     const jump = this.add.circle(1140, 610, 70, 0x2688e8, 0.9).setScrollFactor(0).setDepth(30).setInteractive()
 
-    left.setStrokeStyle(4, 0x267ee6, 0.35)
-    right.setStrokeStyle(4, 0x267ee6, 0.35)
+    left.setStrokeStyle(4, 0x267ee6, 0.62)
+    right.setStrokeStyle(4, 0x267ee6, 0.62)
     ability.setStrokeStyle(5, 0xffffff, 0.7)
     jump.setStrokeStyle(5, 0xffffff, 0.7)
 
-    this.add.text(105, 610, '◀', { fontSize: '38px', color: '#17324d' }).setOrigin(0.5).setScrollFactor(0).setDepth(31)
-    this.add.text(235, 610, '▶', { fontSize: '38px', color: '#17324d' }).setOrigin(0.5).setScrollFactor(0).setDepth(31)
+    this.add.text(78, 625, '◀', { fontSize: '32px', color: '#17324d' }).setOrigin(0.5).setScrollFactor(0).setDepth(31)
+    this.add.text(185, 625, '▶', { fontSize: '32px', color: '#17324d' }).setOrigin(0.5).setScrollFactor(0).setDepth(31)
     this.add.text(980, 610, `👑\n${t.super}`, {
       align: 'center',
       fontFamily: 'Arial Rounded MT Bold, sans-serif',

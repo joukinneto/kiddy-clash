@@ -146,6 +146,15 @@ button { font: inherit; }
 
 .hero-chip span { display: block; margin-top: 3px; }
 
+.hero-chip small {
+  display: block;
+  min-height: 28px;
+  margin-top: 3px;
+  font-size: 9px;
+  line-height: 1.15;
+  color: #6b7f8e;
+}
+
 .language-row { display: flex; justify-content: center; gap: 10px; margin: 20px 0 14px; }
 
 .language-row button {

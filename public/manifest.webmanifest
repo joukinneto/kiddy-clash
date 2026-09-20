@@ -1,0 +1,21 @@
+{
+  "name": "Kiddy Clash — Aventura dos Pequenos Heróis",
+  "short_name": "Kiddy Clash",
+  "description": "Jogo infantil gratuito de corrida e aventura da JKDD TECH.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#67c4ff",
+  "theme_color": "#267ee6",
+  "lang": "pt-BR",
+  "categories": ["games", "kids", "entertainment"],
+  "icons": [
+    {
+      "src": "./app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

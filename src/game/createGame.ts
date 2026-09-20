@@ -1,7 +1,6 @@
 import Phaser from 'phaser'
+import type { GameLanguage } from './domain/heroes'
 import { RaceScene } from './scenes/RaceScene'
-
-export type GameLanguage = 'pt-BR' | 'en-US'
 
 export function createKiddyGame(parent: string, language: GameLanguage) {
   return new Phaser.Game({

@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import type { GameLanguage } from '../createGame'
+import { HERO_BY_ID, abilityLabel, type GameLanguage } from '../domain/heroes'
 
 const text = {
   'pt-BR': {
@@ -11,6 +11,9 @@ const text = {
     replay: 'Toque para jogar novamente',
     jump: 'PULAR',
     race: 'Corrida das Ilhas',
+    ready: 'PRONTO',
+    seconds: 's',
+    super: 'SUPER',
   },
   'en-US': {
     objective: 'Collect stars and finish first!',
@@ -21,23 +24,32 @@ const text = {
     replay: 'Tap to play again',
     jump: 'JUMP',
     race: 'Island Race',
+    ready: 'READY',
+    seconds: 's',
+    super: 'SUPER',
   },
 } as const
+
+const leo = HERO_BY_ID.leo
 
 export class RaceScene extends Phaser.Scene {
   private readonly language: GameLanguage
   private player!: Phaser.Physics.Arcade.Sprite
   private bots: Phaser.Physics.Arcade.Sprite[] = []
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys
+  private abilityKey!: Phaser.Input.Keyboard.Key
   private stars = 0
   private finished = false
   private startTime = 0
+  private abilityReadyAt = 0
   private starsText!: Phaser.GameObjects.Text
   private timerText!: Phaser.GameObjects.Text
   private positionText!: Phaser.GameObjects.Text
+  private abilityText!: Phaser.GameObjects.Text
   private leftHeld = false
   private rightHeld = false
   private jumpQueued = false
+  private abilityQueued = false
 
   constructor(language: GameLanguage) {
     super('race')
@@ -73,7 +85,7 @@ export class RaceScene extends Phaser.Scene {
 
     this.player = this.createRacer(180, 548, 'leo', 86, 98)
     this.player.setBounce(0.02)
-    this.player.setMaxVelocity(520, 900)
+    this.player.setMaxVelocity(520, 980)
 
     this.bots = [
       this.createRacer(118, 552, 'bibi', 74, 92),
@@ -116,6 +128,7 @@ export class RaceScene extends Phaser.Scene {
 
     this.cursors = this.input.keyboard!.createCursorKeys()
     this.input.keyboard!.addKeys('W,A,D,SPACE')
+    this.abilityKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT)
 
     this.createHud()
     this.createTouchControls()
@@ -157,14 +170,67 @@ export class RaceScene extends Phaser.Scene {
       this.jumpQueued = false
     }
 
-    this.updateBots(time)
+    const abilityPressed = Phaser.Input.Keyboard.JustDown(this.abilityKey)
+    if ((abilityPressed || this.abilityQueued) && grounded) {
+      this.useLeoAbility(time)
+    }
 
+    this.updateBots(time)
+    this.updateHud(time)
+  }
+
+  private useLeoAbility(time: number) {
+    if (time < this.abilityReadyAt) {
+      this.abilityQueued = false
+      return
+    }
+
+    this.player.setVelocityY(-790)
+    this.player.setVelocityX(Math.max(this.player.body!.velocity.x, 430))
+    this.abilityReadyAt = time + leo.ability.cooldownMs
+    this.abilityQueued = false
+
+    this.player.setTint(0xffd43b)
+    this.time.delayedCall(240, () => this.player.clearTint())
+
+    for (let i = 0; i < 6; i += 1) {
+      const spark = this.add.image(
+        this.player.x + Phaser.Math.Between(-34, 34),
+        this.player.y + Phaser.Math.Between(-16, 26),
+        'star',
+      )
+        .setScale(0.24)
+        .setDepth(12)
+
+      this.tweens.add({
+        targets: spark,
+        x: spark.x + Phaser.Math.Between(-45, 45),
+        y: spark.y - Phaser.Math.Between(45, 90),
+        alpha: 0,
+        scale: 0.05,
+        duration: 500,
+        ease: 'Quad.Out',
+        onComplete: () => spark.destroy(),
+      })
+    }
+  }
+
+  private updateHud(time: number) {
     const elapsed = Math.max(0, time - this.startTime)
     const seconds = Math.floor(elapsed / 1000)
     this.timerText.setText(`⏱ ${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`)
 
     const place = 1 + this.bots.filter((bot) => bot.x > this.player.x).length
     this.positionText.setText(`🏆 ${text[this.language].position}: ${place}/4`)
+
+    const remaining = Math.max(0, this.abilityReadyAt - time)
+    const ability = abilityLabel(leo, this.language)
+    const state = remaining <= 0
+      ? text[this.language].ready
+      : `${(remaining / 1000).toFixed(1)}${text[this.language].seconds}`
+
+    this.abilityText.setText(`👑 ${ability}: ${state}`)
+    this.abilityText.setColor(remaining <= 0 ? '#158f38' : '#c16a13')
   }
 
   private createRacer(x: number, y: number, texture: string, width: number, height: number) {
@@ -265,12 +331,24 @@ export class RaceScene extends Phaser.Scene {
       .setDepth(20)
       .setStrokeStyle(3, 0xcde9f7)
 
-    this.add.text(190, 22, `🏝️ ${t.race}`, {
+    this.add.text(185, 20, `🏝️ ${t.race}`, {
       fontFamily: 'Arial Rounded MT Bold, sans-serif',
-      fontSize: '21px',
+      fontSize: '20px',
       color: '#267ee6',
       fontStyle: 'bold',
     }).setScrollFactor(0).setDepth(21)
+
+    this.abilityText = this.add.text(
+      185,
+      50,
+      `👑 ${abilityLabel(leo, this.language)}: ${t.ready}`,
+      {
+        fontFamily: 'Arial Rounded MT Bold, sans-serif',
+        fontSize: '15px',
+        color: '#158f38',
+        fontStyle: 'bold',
+      },
+    ).setScrollFactor(0).setDepth(21)
 
     this.add.text(640, 24, t.objective, {
       fontFamily: 'Arial Rounded MT Bold, sans-serif',
@@ -278,9 +356,9 @@ export class RaceScene extends Phaser.Scene {
       color: '#17324d',
     }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(21)
 
-    this.starsText = this.add.text(1030, 17, `⭐ ${t.stars}: 0`, this.hudStyle()).setScrollFactor(0).setDepth(21)
-    this.timerText = this.add.text(1030, 48, '⏱ 00:00', this.hudStyle()).setScrollFactor(0).setDepth(21)
-    this.positionText = this.add.text(1120, 48, `🏆 ${t.position}: 1/4`, this.hudStyle()).setScrollFactor(0).setDepth(21)
+    this.starsText = this.add.text(1025, 17, `⭐ ${t.stars}: 0`, this.hudStyle()).setScrollFactor(0).setDepth(21)
+    this.timerText = this.add.text(1025, 48, '⏱ 00:00', this.hudStyle()).setScrollFactor(0).setDepth(21)
+    this.positionText = this.add.text(1115, 48, `🏆 ${t.position}: 1/4`, this.hudStyle()).setScrollFactor(0).setDepth(21)
   }
 
   private completeRace() {
@@ -339,14 +417,23 @@ export class RaceScene extends Phaser.Scene {
     const t = text[this.language]
     const left = this.add.circle(105, 610, 56, 0xffffff, 0.72).setScrollFactor(0).setDepth(30).setInteractive()
     const right = this.add.circle(235, 610, 56, 0xffffff, 0.72).setScrollFactor(0).setDepth(30).setInteractive()
+    const ability = this.add.circle(980, 610, 61, 0xff9c2f, 0.94).setScrollFactor(0).setDepth(30).setInteractive()
     const jump = this.add.circle(1140, 610, 70, 0x2688e8, 0.9).setScrollFactor(0).setDepth(30).setInteractive()
 
     left.setStrokeStyle(4, 0x267ee6, 0.35)
     right.setStrokeStyle(4, 0x267ee6, 0.35)
+    ability.setStrokeStyle(5, 0xffffff, 0.7)
     jump.setStrokeStyle(5, 0xffffff, 0.7)
 
     this.add.text(105, 610, '◀', { fontSize: '38px', color: '#17324d' }).setOrigin(0.5).setScrollFactor(0).setDepth(31)
     this.add.text(235, 610, '▶', { fontSize: '38px', color: '#17324d' }).setOrigin(0.5).setScrollFactor(0).setDepth(31)
+    this.add.text(980, 610, `👑\n${t.super}`, {
+      align: 'center',
+      fontFamily: 'Arial Rounded MT Bold, sans-serif',
+      fontSize: '17px',
+      color: '#ffffff',
+      fontStyle: 'bold',
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(31)
     this.add.text(1140, 610, `↑\n${t.jump}`, {
       align: 'center',
       fontFamily: 'Arial Rounded MT Bold, sans-serif',
@@ -363,6 +450,7 @@ export class RaceScene extends Phaser.Scene {
     right.on('pointerup', () => { this.rightHeld = false })
     right.on('pointerout', () => { this.rightHeld = false })
 
+    ability.on('pointerdown', () => { this.abilityQueued = true })
     jump.on('pointerdown', () => { this.jumpQueued = true })
   }
 

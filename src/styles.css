@@ -42,7 +42,7 @@ button { font: inherit; }
   display: block;
   width: min(620px, 95%);
   height: auto;
-  margin: 0 auto -8px;
+  margin: 0 auto 2px;
 }
 
 .subtitle {
@@ -190,17 +190,27 @@ button { font: inherit; }
 
 .back-button {
   position: fixed;
-  z-index: 10;
-  top: max(12px, env(safe-area-inset-top));
-  left: max(12px, env(safe-area-inset-left));
-  border: 0;
-  border-radius: 14px;
-  padding: 10px 14px;
+  z-index: 60;
+  top: max(10px, env(safe-area-inset-top));
+  left: max(10px, env(safe-area-inset-left));
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border: 2px solid #cfe7f5;
+  border-radius: 999px;
+  padding: 0;
   color: #17324d;
-  background: #ffffffdd;
-  font-weight: 800;
+  background: #fffffff0;
+  font-size: 25px;
+  line-height: 1;
+  font-weight: 900;
   cursor: pointer;
-  box-shadow: 0 5px 18px #17324d26;
+  box-shadow: 0 4px 14px #17324d24;
+}
+
+.back-button:active {
+  transform: translateY(1px);
 }
 
 @media (max-width: 760px) {
@@ -213,4 +223,14 @@ button { font: inherit; }
   .hero-row p { font-size: 14px; }
   .hero-grid { grid-template-columns: repeat(4, 1fr); gap: 7px; }
   .hero-chip img { height: 58px; }
+}
+
+@media (orientation: landscape) and (max-height: 520px) {
+  .back-button {
+    width: 36px;
+    height: 36px;
+    top: max(6px, env(safe-area-inset-top));
+    left: max(6px, env(safe-area-inset-left));
+    font-size: 22px;
+  }
 }

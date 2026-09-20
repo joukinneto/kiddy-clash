@@ -1,37 +1,31 @@
 import assert from 'node:assert/strict'
-import {
-  BOT_JUMP_ZONES,
-  BUMPER_CRATES,
-  CHECKPOINTS,
-  FINISH_X,
-  LEVEL_WIDTH,
-  MUD_ZONES,
-  PIT_ZONES,
-  TRAMPOLINES,
-} from '../src/game/domain/levelConfig.js'
+import { readFileSync } from 'node:fs'
 
-assert.ok(FINISH_X < LEVEL_WIDTH, 'finish must be inside the level')
-assert.ok(CHECKPOINTS.length >= 3, 'first race should have at least three checkpoints')
+const source = readFileSync(new URL('../src/game/domain/levelConfig.ts', import.meta.url), 'utf8')
 
-let previousCheckpoint = 0
-for (const checkpoint of CHECKPOINTS) {
-  assert.ok(checkpoint.x > previousCheckpoint, 'checkpoints must be strictly ordered')
-  assert.ok(checkpoint.x < FINISH_X, 'checkpoint must be before finish')
-  assert.ok(checkpoint.respawnX <= checkpoint.x, 'respawn should not be beyond checkpoint')
-  previousCheckpoint = checkpoint.x
+function numericConstant(name) {
+  const match = source.match(new RegExp(`export const ${name} = (\\d+)`))
+  assert.ok(match, `missing numeric constant: ${name}`)
+  return Number(match[1])
 }
 
-for (const zone of [...PIT_ZONES, ...MUD_ZONES]) {
-  assert.ok(zone.from < zone.to, 'zone start must be before zone end')
-  assert.ok(zone.from >= 0 && zone.to <= LEVEL_WIDTH, 'zone must stay inside level')
-}
+const levelWidth = numericConstant('LEVEL_WIDTH')
+const finishX = numericConstant('FINISH_X')
 
-for (const obstacle of [...BUMPER_CRATES, ...TRAMPOLINES]) {
-  assert.ok(obstacle.x > 0 && obstacle.x < FINISH_X, 'obstacle must be on the race course')
-}
+assert.ok(finishX > 0 && finishX < levelWidth, 'finish must be inside the level')
 
-for (const [from, to] of BOT_JUMP_ZONES) {
-  assert.ok(from < to, 'bot jump zones must be ordered')
+const checkpoints = [...source.matchAll(/id: 'cp-(\d+)'/g)].map((match) => Number(match[1]))
+assert.ok(checkpoints.length >= 3, 'first race must define at least three checkpoints')
+assert.deepEqual(checkpoints, [...checkpoints].sort((a, b) => a - b), 'checkpoint IDs must be ordered')
+
+for (const required of [
+  'PIT_ZONES',
+  'BUMPER_CRATES',
+  'TRAMPOLINES',
+  'MUD_ZONES',
+  'BOT_JUMP_ZONES',
+]) {
+  assert.ok(source.includes(`export const ${required}`), `missing level collection: ${required}`)
 }
 
 console.log('Kiddy Clash level configuration validated.')

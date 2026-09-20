@@ -8,8 +8,8 @@ export const CHECKPOINTS = [
 ] as const
 
 export const PIT_ZONES = [
-  { from: 1880, to: 2110 },
-  { from: 2740, to: 2920 },
+  { from: 1920, to: 2240 },
+  { from: 2560, to: 2880 },
 ] as const
 
 export const BUMPER_CRATES = [
@@ -32,7 +32,7 @@ export const BOT_JUMP_ZONES = [
   [620, 760],
   [1140, 1260],
   [1470, 1610],
-  [1780, 2130],
+  [1780, 2260],
   [2320, 2470],
-  [2670, 2940],
+  [2470, 2940],
 ] as const

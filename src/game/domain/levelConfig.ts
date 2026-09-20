@@ -1,4 +1,5 @@
 export const LEVEL_WIDTH = 3600
+export const START_X = 390
 export const FINISH_X = 3420
 
 export const CHECKPOINTS = [
@@ -24,7 +25,7 @@ export const TRAMPOLINES = [
 ] as const
 
 export const MUD_ZONES = [
-  { from: 330, to: 500 },
+  { from: 500, to: 610 },
   { from: 3160, to: 3300 },
 ] as const
 

@@ -13,7 +13,8 @@
     "cap:add:android": "cap add android",
     "cap:add:ios": "cap add ios",
     "desktop": "npm run build && electron electron/main.cjs",
-    "validate:level": "node scripts/validate-level.mjs"
+    "validate:level": "node scripts/validate-level.mjs",
+    "validate:pwa": "node scripts/validate-pwa.mjs"
   },
   "dependencies": {
     "@capacitor/core": "8.5.2",

@@ -30,6 +30,9 @@ jobs:
       - name: Validate level configuration
         run: npm run validate:level
 
+      - name: Validate PWA contract
+        run: npm run validate:pwa
+
       - name: Typecheck
         run: npm run typecheck
 

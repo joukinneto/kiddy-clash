@@ -45,8 +45,13 @@ export default function App() {
     return (
       <main className="game-shell">
         <div id="game-root" className="game-root" />
-        <button className="back-button" onClick={() => setPlaying(false)}>
-          ← {t.back}
+        <button
+          className="back-button"
+          aria-label={t.back}
+          title={t.back}
+          onClick={() => setPlaying(false)}
+        >
+          <span aria-hidden="true">←</span>
         </button>
       </main>
     )

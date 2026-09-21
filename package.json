@@ -17,7 +17,8 @@
     "validate:pwa": "node scripts/validate-pwa.mjs",
     "desktop:package": "npm run build && electron-forge package --platform=win32 --arch=x64",
     "desktop:make": "npm run build && electron-forge make --platform=win32 --arch=x64",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "validate:art": "node scripts/validate-art-contract.mjs"
   },
   "dependencies": {
     "@capacitor/core": "8.5.2",

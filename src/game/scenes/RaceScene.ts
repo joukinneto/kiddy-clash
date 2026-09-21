@@ -83,6 +83,8 @@ export class RaceScene extends Phaser.Scene {
   private abilityQueued = false
   private jumpKeyHeld = false
   private abilityKeyHeld = false
+  private jumpCount = 0
+  private abilityCount = 0
 
   constructor(language: GameLanguage) {
     super('race')
@@ -91,6 +93,8 @@ export class RaceScene extends Phaser.Scene {
 
   create() {
     const t = text[this.language]
+    this.jumpCount = 0
+    this.abilityCount = 0
     initializeQaState()
     this.physics.world.setBounds(0, 0, LEVEL_WIDTH, 720)
     this.physics.world.setBoundsCollision(true, true, true, false)
@@ -219,7 +223,8 @@ export class RaceScene extends Phaser.Scene {
     if (this.jumpQueued && grounded) {
       this.player.setVelocityY(-565)
       this.jumpQueued = false
-      updateQaState({ lastEvent: 'jump' })
+      this.jumpCount += 1
+      updateQaState({ jumpCount: this.jumpCount, lastEvent: 'jump' })
     }
 
     const abilityKeyDown = this.abilityKey.isDown
@@ -353,7 +358,12 @@ export class RaceScene extends Phaser.Scene {
     this.player.setVelocityX(Math.max(this.player.body!.velocity.x, 430))
     this.abilityReadyAt = time + leo.ability.cooldownMs
     this.abilityQueued = false
-    updateQaState({ abilityReadyAt: this.abilityReadyAt, lastEvent: 'leo-super-jump' })
+    this.abilityCount += 1
+    updateQaState({
+      abilityReadyAt: this.abilityReadyAt,
+      abilityCount: this.abilityCount,
+      lastEvent: 'leo-super-jump',
+    })
 
     this.player.setTint(0xffd43b)
     this.time.delayedCall(240, () => this.player.clearTint())
@@ -419,6 +429,8 @@ export class RaceScene extends Phaser.Scene {
       finished: this.finished,
       spaceDown: this.cursors.space.isDown,
       shiftDown: this.abilityKey.isDown,
+      jumpCount: this.jumpCount,
+      abilityCount: this.abilityCount,
     })
   }
 

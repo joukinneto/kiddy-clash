@@ -15,7 +15,9 @@ This repository is the canonical product-code repository for `product_id: kiddy-
 7. Prefer pull requests for structural changes.
 8. PT-BR and EN-US are required product languages.
 9. Child safety is mandatory. No unrestricted child chat, gambling-like mechanics or pay-to-win.
-10. The first canonical workflow is `KIDDY-MVP-001 — First Playable Race`.
+10. Premium visual work must follow `docs/ART_DIRECTION.md` and `docs/ART_ASSET_PIPELINE.md`.
+11. Concept/key art defines the quality/identity target; runtime art must be optimized, animated and gameplay-readable.
+12. Do not introduce copyrighted third-party game characters, maps or copied franchise assets.
 
 ## Approved stack
 
@@ -28,9 +30,34 @@ This repository is the canonical product-code repository for `product_id: kiddy-
 - Supabase/PostgreSQL for persistence
 - WebSockets / authoritative game server for realtime multiplayer
 
-## Current phase
+## Active workflows
 
-Offline/AI first playable loop before multiplayer.
+### KIDDY-MVP-002 — Account, Profile & Saved Progression
+
+Backend/profile/progression foundation. Runs in Development/Test.
+
+### KIDDY-ART-001 — Premium Visual Direction & Vertical Slice
+
+Art & Polish Cell workflow. Runs in parallel with MVP 2.
+
+Owners include:
+
+- KC-ART-DIRECTOR
+- KC-CHARACTERS
+- KC-UIUX
+- KC-TECH-ART
+- KC-ANIMATION
+- KC-VFX
+- KC-AUDIO
+- KC-LEVEL
+- KC-PERFORMANCE
+- KC-QA
+
+## Completed workflow
+
+`KIDDY-MVP-001 — First Playable Race`
+
+The tested first playable remains the gameplay regression baseline.
 
 ## Production
 

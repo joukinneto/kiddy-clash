@@ -1,6 +1,8 @@
 # Kiddy Clash — Architecture
 
-Workflow: `KIDDY-MVP-001`
+Active workflows: `KIDDY-MVP-002` + `KIDDY-ART-001`
+
+Completed gameplay baseline: `KIDDY-MVP-001`
 
 ## Runtime layers
 
@@ -41,9 +43,25 @@ After the offline/AI first playable is stable:
 
 Gameplay and domain logic must remain platform-agnostic. Platform adapters cannot become separate product implementations.
 
-## Current prototype
+## Visual production phase
 
-The initial prototype intentionally uses generated geometric textures instead of final character art so gameplay can be validated before the production asset pipeline is introduced.
+The first playable validated gameplay with lightweight/provisional runtime art.
+
+`KIDDY-ART-001` now upgrades that runtime toward the approved premium Kiddy Clash identity using:
+
+- production-target character sprites/atlases
+- layered 2D/2.5D environment art
+- premium React/Phaser UI treatment
+- animation
+- particles/VFX
+- audio cues
+- visual regression evidence
+
+The visual target is defined in `docs/ART_DIRECTION.md`.
+
+The runtime asset contract is defined in `docs/ART_ASSET_PIPELINE.md`.
+
+The first vertical slice does **not** require a realtime 3D engine. Any move to true realtime 3D requires a separate architecture decision.
 
 ## Engine version policy
 

@@ -16,6 +16,8 @@ type QaState = {
   finished: boolean
   spaceDown: boolean
   shiftDown: boolean
+  jumpCount: number
+  abilityCount: number
   lastEvent: string
 }
 
@@ -62,21 +64,29 @@ test('keyboard moves Leo, jumps and activates Super Jump', async ({ page }, test
   expect(moved.progress).toBeGreaterThan(start.progress)
 
   await page.waitForFunction(() => window.__KIDDY_QA__?.grounded === true)
+  const beforeJump = await qaState(page)
   await page.keyboard.down('Space')
   await page.waitForFunction(() => window.__KIDDY_QA__?.spaceDown === true)
+  await page.waitForFunction(
+    (count) => (window.__KIDDY_QA__?.jumpCount ?? 0) > count,
+    beforeJump.jumpCount,
+  )
   await page.waitForTimeout(120)
   await page.keyboard.up('Space')
-  await page.waitForFunction(() => window.__KIDDY_QA__?.lastEvent === 'jump')
 
   const jumped = await qaState(page)
   expect(jumped.velocityY).toBeLessThan(0)
 
   await page.waitForFunction(() => window.__KIDDY_QA__?.grounded === true)
+  const beforeAbility = await qaState(page)
   await page.keyboard.down('Shift')
   await page.waitForFunction(() => window.__KIDDY_QA__?.shiftDown === true)
+  await page.waitForFunction(
+    (count) => (window.__KIDDY_QA__?.abilityCount ?? 0) > count,
+    beforeAbility.abilityCount,
+  )
   await page.waitForTimeout(120)
   await page.keyboard.up('Shift')
-  await page.waitForFunction(() => window.__KIDDY_QA__?.lastEvent === 'leo-super-jump')
 
   const superJumped = await qaState(page)
   expect(superJumped.velocityY).toBeLessThan(0)

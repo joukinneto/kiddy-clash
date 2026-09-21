@@ -501,69 +501,133 @@ export class RaceScene extends Phaser.Scene {
   }
 
   private createWorldArt() {
-    this.add.rectangle(1800, 360, LEVEL_WIDTH, 720, 0x67c4ff).setDepth(-20)
+    // Layered fantasy world. Gameplay geometry remains separate so the
+    // visual pass can evolve without changing physics or QA coordinates.
+    this.add.rectangle(1800, 360, LEVEL_WIDTH, 720, 0x66c7ff).setDepth(-30)
+    this.add.rectangle(1800, 545, LEVEL_WIDTH, 350, 0xa8e8ff, 0.28).setDepth(-29)
 
-    for (let i = 0; i < 16; i += 1) {
-      const x = 150 + i * 245
-      const y = 100 + (i % 4) * 55
-      this.add.ellipse(x, y, 170, 62, 0xffffff, 0.42).setDepth(-18)
-      this.add.ellipse(x + 55, y + 5, 120, 54, 0xffffff, 0.34).setDepth(-18)
+    const sun = this.add.circle(420, 115, 62, 0xffef8b, 0.95).setDepth(-28)
+    sun.setStrokeStyle(14, 0xffffff, 0.16)
+
+    for (let i = 0; i < 18; i += 1) {
+      const x = 100 + i * 220
+      const y = 82 + (i % 5) * 43
+      const scale = 0.72 + (i % 3) * 0.16
+      this.add.ellipse(x, y, 168 * scale, 54 * scale, 0xffffff, 0.38).setDepth(-27)
+      this.add.ellipse(x + 48, y - 4, 104 * scale, 47 * scale, 0xffffff, 0.32).setDepth(-27)
     }
 
+    // Distant mountain / island silhouettes create parallax-like depth.
+    const distant = this.add.graphics().setDepth(-25)
+    distant.fillStyle(0x62b96c, 0.45)
+    distant.fillTriangle(0, 500, 450, 220, 920, 500)
+    distant.fillTriangle(680, 500, 1220, 250, 1730, 500)
+    distant.fillTriangle(1450, 500, 2140, 210, 2800, 500)
+    distant.fillTriangle(2480, 500, 3120, 245, 3600, 500)
+
     const islandPositions = [
-      [620, 285, 170, 70],
-      [1180, 240, 220, 85],
-      [1750, 305, 190, 72],
-      [2320, 245, 240, 88],
-      [3080, 285, 220, 78],
+      [620, 285, 190, 78],
+      [1180, 235, 250, 92],
+      [1750, 310, 205, 78],
+      [2320, 238, 270, 96],
+      [3080, 280, 245, 88],
     ] as const
 
     islandPositions.forEach(([x, y, width, height], index) => {
-      this.add.ellipse(x, y, width, height, 0x7d5a37).setDepth(-15)
-      this.add.ellipse(x, y - 17, width * 0.93, height * 0.55, 0x63c85d).setDepth(-14)
-      if (index % 2 === 0) {
-        this.add.rectangle(x, y + 60, 16, 95, 0x9be9ff, 0.75).setDepth(-16)
+      // shadow under island
+      this.add.ellipse(x + 8, y + 18, width * 1.04, height * 0.82, 0x31556a, 0.18).setDepth(-23)
+      this.add.ellipse(x, y, width, height, 0x7f5637).setDepth(-22)
+      this.add.triangle(
+        x,
+        y + height * 0.35,
+        -width * 0.35,
+        0,
+        width * 0.35,
+        0,
+        0,
+        height * 1.15,
+        0x6a472f,
+      ).setDepth(-22)
+      this.add.ellipse(x, y - 18, width * 0.94, height * 0.58, 0x66cf63).setDepth(-21)
+      this.add.ellipse(x, y - 28, width * 0.68, height * 0.22, 0xa3ef7f, 0.7).setDepth(-20)
+
+      if (index !== 2) {
+        const fallHeight = index % 2 === 0 ? 112 : 82
+        this.add.rectangle(x + width * 0.2, y + 64, 14, fallHeight, 0xb8f4ff, 0.74).setDepth(-23)
+        this.add.rectangle(x + width * 0.2 + 6, y + 64, 5, fallHeight, 0xffffff, 0.44).setDepth(-22)
+        this.add.ellipse(x + width * 0.2, y + 64 + fallHeight / 2, 36, 12, 0xd7f9ff, 0.32).setDepth(-21)
       }
+
+      // shrubs and tiny trees
+      const treeX = x - width * 0.22
+      this.add.rectangle(treeX, y - 54, 9, 31, 0x765032).setDepth(-19)
+      this.add.circle(treeX, y - 75, 21, index % 2 === 0 ? 0x4fb65b : 0x5ec767).setDepth(-18)
+      this.add.circle(treeX - 13, y - 68, 15, 0x6bd06c).setDepth(-18)
+    })
+
+    // Castle landmark.
+    this.add.rectangle(3090, 165, 126, 102, 0xf7f1df).setDepth(-18)
+    this.add.rectangle(3025, 181, 54, 78, 0xf1e8d5).setDepth(-18)
+    this.add.rectangle(3155, 181, 54, 78, 0xf1e8d5).setDepth(-18)
+    this.add.triangle(3025, 115, -36, 45, 0, 0, 36, 45, 0x6b72da).setDepth(-17)
+    this.add.triangle(3090, 103, -48, 52, 0, 0, 48, 52, 0x4f76d8).setDepth(-17)
+    this.add.triangle(3155, 115, -36, 45, 0, 0, 36, 45, 0x6b72da).setDepth(-17)
+    this.add.rectangle(3090, 216, 272, 24, 0x72d66c).setDepth(-19)
+    for (const windowX of [3058, 3090, 3122]) {
+      this.add.roundedRectangle?.(windowX, 165, 18, 28, 8, 0x79c8ff)
+    }
+
+    // Decorative balloons / dirigible silhouettes.
+    this.add.ellipse(960, 138, 92, 54, 0xff8b71, 0.92).setDepth(-16)
+    this.add.rectangle(960, 177, 44, 14, 0x7b5139).setDepth(-16)
+    this.add.line(0, 0, 938, 157, 948, 177, 0x6a4a3a, 0.6).setDepth(-17)
+    this.add.line(0, 0, 982, 157, 972, 177, 0x6a4a3a, 0.6).setDepth(-17)
+
+    this.add.ellipse(2760, 112, 74, 44, 0x8b78ea, 0.82).setDepth(-16)
+    this.add.rectangle(2760, 143, 35, 11, 0x7b5139).setDepth(-16)
+
+    // Rainbow landmark.
+    const rainbow = this.add.graphics().setDepth(-18)
+    const rainbowBands = [
+      [0xff6f78, 16, 270],
+      [0xffc84f, 14, 250],
+      [0x62d56c, 14, 231],
+      [0x4b8de9, 14, 212],
+      [0xa276e8, 13, 194],
+    ] as const
+    rainbowBands.forEach(([color, thickness, radius]) => {
+      rainbow.lineStyle(thickness, color, 0.82)
+      rainbow.beginPath()
+      rainbow.arc(2550, 435, radius, Math.PI, Math.PI * 2)
+      rainbow.strokePath()
     })
 
     PIT_ZONES.forEach(({ from, to }) => {
-      this.add.ellipse((from + to) / 2, 665, to - from, 46, 0x4c7fa0, 0.5).setDepth(-12)
+      this.add.ellipse((from + to) / 2, 665, to - from, 54, 0x4f8dad, 0.54).setDepth(-12)
+      this.add.ellipse((from + to) / 2, 655, (to - from) * 0.84, 24, 0x9de9ff, 0.32).setDepth(-11)
     })
 
     MUD_ZONES.forEach(({ from, to }) => {
-      this.add.rectangle((from + to) / 2, 607, to - from, 24, 0x8c633f, 0.8).setDepth(1)
+      this.add.ellipse((from + to) / 2, 612, to - from, 31, 0x875a3a, 0.88).setDepth(1)
+      this.add.ellipse((from + to) / 2, 607, (to - from) * 0.68, 10, 0xc08b58, 0.5).setDepth(2)
     })
 
-    this.add.rectangle(3090, 155, 120, 95, 0xe9f4ff).setDepth(-13)
-    this.add.triangle(3030, 112, 0, 60, 60, 0, 120, 60, 0x397cc6).setDepth(-12)
-    this.add.triangle(3150, 112, 0, 60, 60, 0, 120, 60, 0x397cc6).setDepth(-12)
-    this.add.rectangle(3090, 215, 250, 22, 0x80d878).setDepth(-13)
+    // Foreground vegetation placed outside the racing path.
+    for (const x of [260, 820, 1380, 1690, 2970, 3330]) {
+      this.add.circle(x - 18, 602, 24, 0x4cb65c).setDepth(0)
+      this.add.circle(x + 8, 600, 30, 0x58c767).setDepth(0)
+      this.add.circle(x + 32, 606, 19, 0x72d46c).setDepth(0)
+    }
 
-    const rainbow = this.add.graphics().setDepth(-17)
-    rainbow.lineStyle(14, 0xff6f6f, 0.8)
-    rainbow.beginPath()
-    rainbow.arc(2550, 420, 260, Math.PI, Math.PI * 2)
-    rainbow.strokePath()
-    rainbow.lineStyle(12, 0xffd45e, 0.8)
-    rainbow.beginPath()
-    rainbow.arc(2550, 420, 242, Math.PI, Math.PI * 2)
-    rainbow.strokePath()
-    rainbow.lineStyle(12, 0x5fd97d, 0.8)
-    rainbow.beginPath()
-    rainbow.arc(2550, 420, 224, Math.PI, Math.PI * 2)
-    rainbow.strokePath()
-    rainbow.lineStyle(12, 0x4b8de9, 0.8)
-    rainbow.beginPath()
-    rainbow.arc(2550, 420, 206, Math.PI, Math.PI * 2)
-    rainbow.strokePath()
-
-    this.add.text(425, 250, '⭐  KIDDY CLASH  ⭐', {
+    this.add.text(425, 252, '⭐  KIDDY CLASH  ⭐', {
       fontFamily: 'Arial Rounded MT Bold, sans-serif',
-      fontSize: '28px',
+      fontSize: '30px',
       color: '#ffffff',
-      backgroundColor: '#267ee6bb',
-      padding: { x: 16, y: 10 },
-    }).setOrigin(0.5).setDepth(-10)
+      stroke: '#1d65a8',
+      strokeThickness: 5,
+      backgroundColor: '#2b83dfbb',
+      padding: { x: 18, y: 11 },
+    }).setOrigin(0.5).setDepth(-9)
   }
 
   private createHud() {

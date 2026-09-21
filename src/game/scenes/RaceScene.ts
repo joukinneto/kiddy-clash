@@ -83,8 +83,6 @@ export class RaceScene extends Phaser.Scene {
   private abilityQueued = false
   private jumpKeyHeld = false
   private abilityKeyHeld = false
-  private jumpKeyHeld = false
-  private abilityKeyHeld = false
 
   constructor(language: GameLanguage) {
     super('race')

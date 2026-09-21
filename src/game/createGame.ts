@@ -4,7 +4,10 @@ import { RaceScene } from './scenes/RaceScene'
 
 export function createKiddyGame(parent: string, language: GameLanguage) {
   return new Phaser.Game({
-    type: Phaser.AUTO,
+    // Canvas is intentional for the first playable: it renders our SVG hero
+    // textures consistently in browsers, Capacitor and Electron. Revisit
+    // WebGL only after the production asset pipeline/performance benchmark.
+    type: Phaser.CANVAS,
     parent,
     backgroundColor: '#72c9ff',
     scale: {

@@ -1,15 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 210">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 145">
   <defs>
     <linearGradient id="gold" x1="0" x2="0" y1="0" y2="1"><stop stop-color="#ffd85a"/><stop offset="1" stop-color="#ff8b24"/></linearGradient>
     <linearGradient id="blue" x1="0" x2="0" y1="0" y2="1"><stop stop-color="#67c9ff"/><stop offset="1" stop-color="#267ee6"/></linearGradient>
-    <filter id="shadow"><feDropShadow dx="0" dy="10" stdDeviation="2" flood-color="#17324d" flood-opacity=".35"/></filter>
+    <filter id="shadow"><feDropShadow dx="0" dy="8" stdDeviation="2" flood-color="#17324d" flood-opacity=".35"/></filter>
   </defs>
   <g filter="url(#shadow)">
-    <path d="M260 20 280 52 310 28 326 60 350 38 342 86H250l10-66Z" fill="#ffd43b" stroke="#b86a13" stroke-width="7" stroke-linejoin="round"/>
-    <text x="35" y="125" font-family="Arial Rounded MT Bold,Arial,sans-serif" font-size="100" font-weight="900" fill="url(#gold)" stroke="#9d5819" stroke-width="6" paint-order="stroke">KIDDY</text>
-    <text x="310" y="125" font-family="Arial Rounded MT Bold,Arial,sans-serif" font-size="100" font-weight="900" fill="url(#blue)" stroke="#14599e" stroke-width="6" paint-order="stroke">CLASH</text>
-    <path d="m564 45 9 22 24 2-18 15 6 23-21-12-21 12 6-23-18-15 24-2 9-22Z" fill="#ffd43b" stroke="#b86a13" stroke-width="4"/>
-    <rect x="118" y="145" rx="18" width="385" height="48" fill="#a76d3f"/>
-    <text x="310" y="178" text-anchor="middle" font-family="Arial Rounded MT Bold,Arial,sans-serif" font-size="24" font-weight="700" fill="#fff7df">Aventura dos Pequenos Heróis</text>
+    <path d="M260 16 280 48 310 24 326 56 350 34 342 82H250l10-66Z" fill="#ffd43b" stroke="#b86a13" stroke-width="7" stroke-linejoin="round"/>
+    <text x="35" y="121" font-family="Arial Rounded MT Bold,Arial,sans-serif" font-size="100" font-weight="900" fill="url(#gold)" stroke="#9d5819" stroke-width="6" paint-order="stroke">KIDDY</text>
+    <text x="310" y="121" font-family="Arial Rounded MT Bold,Arial,sans-serif" font-size="100" font-weight="900" fill="url(#blue)" stroke="#14599e" stroke-width="6" paint-order="stroke">CLASH</text>
+    <path d="m564 41 9 22 24 2-18 15 6 23-21-12-21 12 6-23-18-15 24-2 9-22Z" fill="#ffd43b" stroke="#b86a13" stroke-width="4"/>
   </g>
 </svg>

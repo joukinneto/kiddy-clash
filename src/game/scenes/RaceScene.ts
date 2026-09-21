@@ -7,6 +7,7 @@ import {
   CHECKPOINTS,
   FINISH_X,
   LEVEL_WIDTH,
+  START_X,
   MUD_ZONES,
   PIT_ZONES,
   TRAMPOLINES,
@@ -54,6 +55,11 @@ export class RaceScene extends Phaser.Scene {
   private player!: Phaser.Physics.Arcade.Sprite
   private bots: Phaser.Physics.Arcade.Sprite[] = []
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys
+  private movementKeys!: {
+    W: Phaser.Input.Keyboard.Key
+    A: Phaser.Input.Keyboard.Key
+    D: Phaser.Input.Keyboard.Key
+  }
   private abilityKey!: Phaser.Input.Keyboard.Key
   private stars = 0
   private finished = false
@@ -62,7 +68,7 @@ export class RaceScene extends Phaser.Scene {
   private lastObstacleHitAt = 0
   private lastTrampolineAt = 0
   private activeCheckpoint = 0
-  private respawnX = 180
+  private respawnX = START_X
   private respawnY = 520
   private starsText!: Phaser.GameObjects.Text
   private timerText!: Phaser.GameObjects.Text
@@ -75,22 +81,20 @@ export class RaceScene extends Phaser.Scene {
   private rightHeld = false
   private jumpQueued = false
   private abilityQueued = false
+  private jumpKeyHeld = false
+  private abilityKeyHeld = false
+  private jumpCount = 0
+  private abilityCount = 0
 
   constructor(language: GameLanguage) {
     super('race')
     this.language = language
   }
 
-  preload() {
-    this.load.svg('leo', 'assets/characters/leo.svg')
-    this.load.svg('bibi', 'assets/characters/bibi.svg')
-    this.load.svg('max', 'assets/characters/max.svg')
-    this.load.svg('foxy', 'assets/characters/foxy.svg')
-    this.load.svg('dino', 'assets/characters/dino.svg')
-  }
-
   create() {
     const t = text[this.language]
+    this.jumpCount = 0
+    this.abilityCount = 0
     initializeQaState()
     this.physics.world.setBounds(0, 0, LEVEL_WIDTH, 720)
     this.physics.world.setBoundsCollision(true, true, true, false)
@@ -114,14 +118,14 @@ export class RaceScene extends Phaser.Scene {
     ground.create(2460, 515, 'platform').refreshBody()
     ground.create(2830, 430, 'platform').refreshBody()
 
-    this.player = this.createRacer(180, 548, 'leo', 86, 98)
+    this.player = this.createRacer(START_X, 548, 'leo', 86, 98)
     this.player.setBounce(0.02)
     this.player.setMaxVelocity(520, 980)
 
     this.bots = [
-      this.createRacer(118, 552, 'bibi', 74, 92),
-      this.createRacer(82, 550, 'max', 78, 92),
-      this.createRacer(48, 550, 'foxy', 78, 92),
+      this.createRacer(START_X - 55, 552, 'bibi', 74, 92),
+      this.createRacer(START_X - 110, 550, 'max', 78, 92),
+      this.createRacer(START_X - 165, 550, 'foxy', 78, 92),
     ]
 
     this.physics.add.collider(this.player, ground)
@@ -162,11 +166,16 @@ export class RaceScene extends Phaser.Scene {
     }).setOrigin(0.5)
 
     this.cursors = this.input.keyboard!.createCursorKeys()
-    this.input.keyboard!.addKeys('W,A,D,SPACE')
+    this.movementKeys = this.input.keyboard!.addKeys('W,A,D') as {
+      W: Phaser.Input.Keyboard.Key
+      A: Phaser.Input.Keyboard.Key
+      D: Phaser.Input.Keyboard.Key
+    }
     this.abilityKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT)
+    this.bindKeyboardActions()
 
     this.createHud()
-    this.createTouchControls()
+    if (this.sys.game.device.input.touch) this.createTouchControls()
     this.startTime = this.time.now
 
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08, -180, 35)
@@ -186,11 +195,8 @@ export class RaceScene extends Phaser.Scene {
       return
     }
 
-    const keys = this.input.keyboard!.keys
-    const a = keys[Phaser.Input.Keyboard.KeyCodes.A]
-    const d = keys[Phaser.Input.Keyboard.KeyCodes.D]
-    const w = keys[Phaser.Input.Keyboard.KeyCodes.W]
-    const space = keys[Phaser.Input.Keyboard.KeyCodes.SPACE]
+    const { A: a, D: d, W: w } = this.movementKeys
+    const space = this.cursors.space
 
     const left = this.cursors.left.isDown || a?.isDown || this.leftHeld
     const right = this.cursors.right.isDown || d?.isDown || this.rightHeld
@@ -208,26 +214,69 @@ export class RaceScene extends Phaser.Scene {
       this.player.setVelocityX(this.player.body!.velocity.x * (inMud ? 0.72 : 0.82))
     }
 
-    const grounded = (this.player.body as Phaser.Physics.Arcade.Body).blocked.down
-    const jumpPressed =
-      Phaser.Input.Keyboard.JustDown(this.cursors.up) ||
-      Phaser.Input.Keyboard.JustDown(space) ||
-      Phaser.Input.Keyboard.JustDown(w)
+    const grounded = this.isPlayerGrounded()
+    const jumpKeyDown = this.cursors.up.isDown || space.isDown || w.isDown
+    if (jumpKeyDown && !this.jumpKeyHeld) {
+      this.jumpQueued = true
+    }
+    this.jumpKeyHeld = jumpKeyDown
 
-    if ((jumpPressed || this.jumpQueued) && grounded) {
-      this.player.setVelocityY(-565)
-      this.jumpQueued = false
-      updateQaState({ lastEvent: 'jump' })
+    if (this.jumpQueued && grounded) {
+      this.performJump()
     }
 
-    const abilityPressed = Phaser.Input.Keyboard.JustDown(this.abilityKey)
-    if ((abilityPressed || this.abilityQueued) && grounded) {
+    const abilityKeyDown = this.abilityKey.isDown
+    if (abilityKeyDown && !this.abilityKeyHeld) {
+      this.abilityQueued = true
+    }
+    this.abilityKeyHeld = abilityKeyDown
+
+    if (this.abilityQueued && grounded) {
       this.useLeoAbility(time)
     }
 
     this.updateBots(time)
     this.updateHud(time)
     this.updateQaTelemetry()
+  }
+
+  private bindKeyboardActions() {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (this.finished || event.repeat) return
+
+      if (event.code === 'Space' || event.code === 'ArrowUp' || event.code === 'KeyW') {
+        event.preventDefault()
+        this.jumpQueued = true
+        this.jumpKeyHeld = true
+        updateQaState({ lastEvent: 'keyboard-jump-request' })
+        return
+      }
+
+      if (event.code === 'ShiftLeft' || event.code === 'ShiftRight') {
+        event.preventDefault()
+        this.abilityQueued = true
+        this.abilityKeyHeld = true
+        updateQaState({ lastEvent: 'keyboard-ability-request' })
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      window.removeEventListener('keydown', onKeyDown)
+    })
+  }
+
+  private isPlayerGrounded() {
+    const body = this.player.body as Phaser.Physics.Arcade.Body
+    return body.blocked.down || body.touching.down || body.wasTouching.down
+  }
+
+  private performJump() {
+    this.player.setVelocityY(-565)
+    this.jumpQueued = false
+    this.jumpCount += 1
+    updateQaState({ jumpCount: this.jumpCount, lastEvent: 'jump' })
   }
 
   private createObstacles() {
@@ -346,7 +395,12 @@ export class RaceScene extends Phaser.Scene {
     this.player.setVelocityX(Math.max(this.player.body!.velocity.x, 430))
     this.abilityReadyAt = time + leo.ability.cooldownMs
     this.abilityQueued = false
-    updateQaState({ abilityReadyAt: this.abilityReadyAt, lastEvent: 'leo-super-jump' })
+    this.abilityCount += 1
+    updateQaState({
+      abilityReadyAt: this.abilityReadyAt,
+      abilityCount: this.abilityCount,
+      lastEvent: 'leo-super-jump',
+    })
 
     this.player.setTint(0xffd43b)
     this.time.delayedCall(240, () => this.player.clearTint())
@@ -381,7 +435,7 @@ export class RaceScene extends Phaser.Scene {
     const place = 1 + this.bots.filter((bot) => bot.x > this.player.x).length
     this.positionText.setText(`🏆 ${text[this.language].position}: ${place}/4`)
 
-    const progress = Phaser.Math.Clamp(this.player.x / FINISH_X, 0, 1)
+    const progress = Phaser.Math.Clamp((this.player.x - START_X) / (FINISH_X - START_X), 0, 1)
     this.progressFill.setScale(progress, 1)
     this.progressText.setText(`${text[this.language].progress}: ${Math.round(progress * 100)}%`)
 
@@ -403,13 +457,17 @@ export class RaceScene extends Phaser.Scene {
       playerY: this.player.y,
       velocityX: body.velocity.x,
       velocityY: body.velocity.y,
-      grounded: body.blocked.down,
+      grounded: this.isPlayerGrounded(),
       stars: this.stars,
       checkpoint: this.activeCheckpoint,
       position: place,
-      progress: Phaser.Math.Clamp(this.player.x / FINISH_X, 0, 1),
+      progress: Phaser.Math.Clamp((this.player.x - START_X) / (FINISH_X - START_X), 0, 1),
       abilityReadyAt: this.abilityReadyAt,
       finished: this.finished,
+      spaceDown: this.cursors.space.isDown,
+      shiftDown: this.abilityKey.isDown,
+      jumpCount: this.jumpCount,
+      abilityCount: this.abilityCount,
     })
   }
 
@@ -555,7 +613,7 @@ export class RaceScene extends Phaser.Scene {
     progressTrack.setStrokeStyle(2, 0x8eb4ca)
 
     CHECKPOINTS.forEach((checkpoint) => {
-      const markerX = 430 + (checkpoint.x / FINISH_X) * 405
+      const markerX = 430 + ((checkpoint.x - START_X) / (FINISH_X - START_X)) * 405
       this.add.circle(markerX, 54, 5, 0x267ee6)
         .setScrollFactor(0)
         .setDepth(23)
@@ -640,18 +698,18 @@ export class RaceScene extends Phaser.Scene {
 
   private createTouchControls() {
     const t = text[this.language]
-    const left = this.add.circle(105, 610, 56, 0xffffff, 0.72).setScrollFactor(0).setDepth(30).setInteractive()
-    const right = this.add.circle(235, 610, 56, 0xffffff, 0.72).setScrollFactor(0).setDepth(30).setInteractive()
+    const left = this.add.circle(78, 625, 46, 0xffffff, 0.42).setScrollFactor(0).setDepth(30).setInteractive()
+    const right = this.add.circle(185, 625, 46, 0xffffff, 0.42).setScrollFactor(0).setDepth(30).setInteractive()
     const ability = this.add.circle(980, 610, 61, 0xff9c2f, 0.94).setScrollFactor(0).setDepth(30).setInteractive()
     const jump = this.add.circle(1140, 610, 70, 0x2688e8, 0.9).setScrollFactor(0).setDepth(30).setInteractive()
 
-    left.setStrokeStyle(4, 0x267ee6, 0.35)
-    right.setStrokeStyle(4, 0x267ee6, 0.35)
+    left.setStrokeStyle(4, 0x267ee6, 0.62)
+    right.setStrokeStyle(4, 0x267ee6, 0.62)
     ability.setStrokeStyle(5, 0xffffff, 0.7)
     jump.setStrokeStyle(5, 0xffffff, 0.7)
 
-    this.add.text(105, 610, '◀', { fontSize: '38px', color: '#17324d' }).setOrigin(0.5).setScrollFactor(0).setDepth(31)
-    this.add.text(235, 610, '▶', { fontSize: '38px', color: '#17324d' }).setOrigin(0.5).setScrollFactor(0).setDepth(31)
+    this.add.text(78, 625, '◀', { fontSize: '32px', color: '#17324d' }).setOrigin(0.5).setScrollFactor(0).setDepth(31)
+    this.add.text(185, 625, '▶', { fontSize: '32px', color: '#17324d' }).setOrigin(0.5).setScrollFactor(0).setDepth(31)
     this.add.text(980, 610, `👑\n${t.super}`, {
       align: 'center',
       fontFamily: 'Arial Rounded MT Bold, sans-serif',
@@ -681,6 +739,103 @@ export class RaceScene extends Phaser.Scene {
 
   private createTextures() {
     const graphics = this.add.graphics()
+
+    // Gameplay sprites are generated by Phaser itself for deterministic
+    // rendering across browser, Capacitor and Electron. The richer SVG
+    // character art remains the canonical menu/presentation artwork.
+    graphics.fillStyle(0x8a4a20)
+    graphics.fillCircle(48, 34, 31)
+    graphics.fillStyle(0xf3a340)
+    graphics.fillCircle(48, 36, 24)
+    graphics.fillCircle(28, 17, 9)
+    graphics.fillCircle(68, 17, 9)
+    graphics.fillStyle(0x17324d)
+    graphics.fillCircle(39, 33, 4)
+    graphics.fillCircle(57, 33, 4)
+    graphics.fillStyle(0xffd9a3)
+    graphics.fillEllipse(48, 47, 21, 15)
+    graphics.fillStyle(0xe84a3a)
+    graphics.fillRoundedRect(27, 62, 42, 34, 11)
+    graphics.fillStyle(0xffd43b)
+    graphics.fillTriangle(48, 69, 42, 82, 54, 82)
+    graphics.fillStyle(0x2d83dd)
+    graphics.fillRoundedRect(31, 93, 13, 16, 5)
+    graphics.fillRoundedRect(52, 93, 13, 16, 5)
+    graphics.generateTexture('leo', 96, 112)
+    graphics.clear()
+
+    graphics.fillStyle(0xffffff)
+    graphics.fillRoundedRect(27, 0, 14, 42, 7)
+    graphics.fillRoundedRect(55, 0, 14, 42, 7)
+    graphics.fillCircle(48, 40, 26)
+    graphics.fillStyle(0xf0518e)
+    graphics.fillRoundedRect(27, 65, 42, 32, 11)
+    graphics.fillStyle(0x17324d)
+    graphics.fillCircle(39, 38, 4)
+    graphics.fillCircle(57, 38, 4)
+    graphics.fillStyle(0xf28aa8)
+    graphics.fillEllipse(48, 49, 9, 6)
+    graphics.fillStyle(0xffffff)
+    graphics.fillRoundedRect(31, 94, 12, 15, 5)
+    graphics.fillRoundedRect(53, 94, 12, 15, 5)
+    graphics.generateTexture('bibi', 96, 112)
+    graphics.clear()
+
+    graphics.fillStyle(0x9d6039)
+    graphics.fillEllipse(23, 37, 24, 40)
+    graphics.fillEllipse(73, 37, 24, 40)
+    graphics.fillStyle(0xf6e8d8)
+    graphics.fillCircle(48, 40, 27)
+    graphics.fillStyle(0xcaa168)
+    graphics.fillRoundedRect(22, 10, 52, 15, 7)
+    graphics.fillRect(31, 2, 34, 13)
+    graphics.fillStyle(0x17324d)
+    graphics.fillCircle(39, 39, 4)
+    graphics.fillCircle(57, 39, 4)
+    graphics.fillStyle(0x2b211b)
+    graphics.fillEllipse(48, 51, 10, 7)
+    graphics.fillStyle(0xc79558)
+    graphics.fillRoundedRect(27, 66, 42, 31, 11)
+    graphics.fillStyle(0xd94a32)
+    graphics.fillRect(28, 67, 40, 7)
+    graphics.fillStyle(0xf6e8d8)
+    graphics.fillRoundedRect(31, 94, 12, 15, 5)
+    graphics.fillRoundedRect(53, 94, 12, 15, 5)
+    graphics.generateTexture('max', 96, 112)
+    graphics.clear()
+
+    graphics.fillStyle(0xf2792f)
+    graphics.fillTriangle(20, 29, 30, 2, 42, 31)
+    graphics.fillTriangle(54, 31, 66, 2, 76, 29)
+    graphics.fillCircle(48, 40, 27)
+    graphics.fillStyle(0xffffff)
+    graphics.fillEllipse(48, 51, 30, 22)
+    graphics.fillStyle(0x17324d)
+    graphics.fillCircle(39, 38, 4)
+    graphics.fillCircle(57, 38, 4)
+    graphics.fillStyle(0x492718)
+    graphics.fillCircle(48, 49, 4)
+    graphics.fillStyle(0x327fd1)
+    graphics.fillRoundedRect(27, 66, 42, 31, 11)
+    graphics.fillStyle(0x7b512e)
+    graphics.fillRoundedRect(31, 94, 12, 15, 5)
+    graphics.fillRoundedRect(53, 94, 12, 15, 5)
+    graphics.generateTexture('foxy', 96, 112)
+    graphics.clear()
+
+    graphics.fillStyle(0x69c759)
+    graphics.fillCircle(48, 39, 27)
+    graphics.fillRoundedRect(27, 65, 42, 34, 12)
+    graphics.fillStyle(0xef7735)
+    graphics.fillTriangle(31, 18, 37, 2, 43, 19)
+    graphics.fillTriangle(46, 13, 52, 0, 58, 16)
+    graphics.fillStyle(0x17324d)
+    graphics.fillCircle(39, 38, 4)
+    graphics.fillCircle(57, 38, 4)
+    graphics.fillStyle(0xbce998)
+    graphics.fillEllipse(48, 52, 25, 17)
+    graphics.generateTexture('dino', 96, 112)
+    graphics.clear()
 
     graphics.fillStyle(0x58bd55)
     graphics.fillRoundedRect(0, 0, 320, 70, 18)

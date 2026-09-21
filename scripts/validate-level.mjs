@@ -10,8 +10,10 @@ function numericConstant(name) {
 }
 
 const levelWidth = numericConstant('LEVEL_WIDTH')
+const startX = numericConstant('START_X')
 const finishX = numericConstant('FINISH_X')
 
+assert.ok(startX > 0 && startX < finishX, 'start must be before finish')
 assert.ok(finishX > 0 && finishX < levelWidth, 'finish must be inside the level')
 
 const checkpoints = [...source.matchAll(/id: 'cp-(\d+)'/g)].map((match) => Number(match[1]))

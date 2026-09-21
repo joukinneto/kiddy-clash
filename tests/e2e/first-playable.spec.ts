@@ -1,3 +1,4 @@
+import { mkdir } from 'node:fs/promises'
 import { expect, test } from '@playwright/test'
 
 type QaState = {
@@ -13,6 +14,10 @@ type QaState = {
   progress: number
   abilityReadyAt: number
   finished: boolean
+  spaceDown: boolean
+  shiftDown: boolean
+  jumpCount: number
+  abilityCount: number
   lastEvent: string
 }
 
@@ -46,11 +51,12 @@ test('keyboard moves Leo, jumps and activates Super Jump', async ({ page }, test
   await page.getByRole('button', { name: /Jogar agora/i }).click()
   await page.waitForFunction(() => window.__KIDDY_QA__?.sceneReady === true)
   await page.waitForFunction(() => window.__KIDDY_QA__?.grounded === true)
+  await page.locator('canvas').click()
 
   const start = await qaState(page)
 
   await page.keyboard.down('ArrowRight')
-  await page.waitForTimeout(650)
+  await page.waitForTimeout(280)
   await page.keyboard.up('ArrowRight')
 
   const moved = await qaState(page)
@@ -58,15 +64,29 @@ test('keyboard moves Leo, jumps and activates Super Jump', async ({ page }, test
   expect(moved.progress).toBeGreaterThan(start.progress)
 
   await page.waitForFunction(() => window.__KIDDY_QA__?.grounded === true)
-  await page.keyboard.press('Space')
-  await page.waitForFunction(() => window.__KIDDY_QA__?.lastEvent === 'jump')
+  const beforeJump = await qaState(page)
+  await page.keyboard.down('Space')
+  await page.waitForFunction(() => window.__KIDDY_QA__?.spaceDown === true)
+  await page.waitForFunction(
+    (count) => (window.__KIDDY_QA__?.jumpCount ?? 0) > count,
+    beforeJump.jumpCount,
+  )
+  await page.waitForTimeout(120)
+  await page.keyboard.up('Space')
 
   const jumped = await qaState(page)
   expect(jumped.velocityY).toBeLessThan(0)
 
   await page.waitForFunction(() => window.__KIDDY_QA__?.grounded === true)
-  await page.keyboard.press('Shift')
-  await page.waitForFunction(() => window.__KIDDY_QA__?.lastEvent === 'leo-super-jump')
+  const beforeAbility = await qaState(page)
+  await page.keyboard.down('Shift')
+  await page.waitForFunction(() => window.__KIDDY_QA__?.shiftDown === true)
+  await page.waitForFunction(
+    (count) => (window.__KIDDY_QA__?.abilityCount ?? 0) > count,
+    beforeAbility.abilityCount,
+  )
+  await page.waitForTimeout(120)
+  await page.keyboard.up('Shift')
 
   const superJumped = await qaState(page)
   expect(superJumped.velocityY).toBeLessThan(0)
@@ -86,8 +106,8 @@ test('mobile landscape touch controls move and jump', async ({ page }, testInfo)
   expect(box).not.toBeNull()
   if (!box) return
 
-  const rightX = box.x + (235 / 1280) * box.width
-  const controlsY = box.y + (610 / 720) * box.height
+  const rightX = box.x + (185 / 1280) * box.width
+  const controlsY = box.y + (625 / 720) * box.height
   const jumpX = box.x + (1140 / 1280) * box.width
 
   const start = await qaState(page)
@@ -106,4 +126,24 @@ test('mobile landscape touch controls move and jump', async ({ page }, testInfo)
 
   const jumped = await qaState(page)
   expect(jumped.velocityY).toBeLessThan(0)
+})
+
+test('capture rendered visual QA evidence', async ({ page }, testInfo) => {
+  await mkdir('qa-screenshots', { recursive: true })
+
+  await page.goto('/?qa=1')
+  await expect(page.getByAltText('Kiddy Clash')).toBeVisible()
+  await page.screenshot({
+    path: `qa-screenshots/${testInfo.project.name}-home.png`,
+    fullPage: true,
+  })
+
+  await page.getByRole('button', { name: /Jogar agora/i }).click()
+  await page.waitForFunction(() => window.__KIDDY_QA__?.sceneReady === true)
+  await page.waitForTimeout(350)
+
+  await page.screenshot({
+    path: `qa-screenshots/${testInfo.project.name}-gameplay.png`,
+    fullPage: true,
+  })
 })

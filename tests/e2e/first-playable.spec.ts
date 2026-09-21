@@ -59,14 +59,18 @@ test('keyboard moves Leo, jumps and activates Super Jump', async ({ page }, test
   expect(moved.progress).toBeGreaterThan(start.progress)
 
   await page.waitForFunction(() => window.__KIDDY_QA__?.grounded === true)
-  await page.keyboard.press('Space')
+  await page.keyboard.down('Space')
+  await page.waitForTimeout(120)
+  await page.keyboard.up('Space')
   await page.waitForFunction(() => window.__KIDDY_QA__?.lastEvent === 'jump')
 
   const jumped = await qaState(page)
   expect(jumped.velocityY).toBeLessThan(0)
 
   await page.waitForFunction(() => window.__KIDDY_QA__?.grounded === true)
-  await page.keyboard.press('Shift')
+  await page.keyboard.down('Shift')
+  await page.waitForTimeout(120)
+  await page.keyboard.up('Shift')
   await page.waitForFunction(() => window.__KIDDY_QA__?.lastEvent === 'leo-super-jump')
 
   const superJumped = await qaState(page)

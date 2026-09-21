@@ -22,6 +22,6 @@ assert.ok(direction.includes('Key art vs runtime art'), 'key/runtime art distinc
 assert.ok(direction.includes('PT-BR and EN-US'), 'localization rule is required')
 assert.ok(pipeline.includes('Collision and gameplay logic must not depend on decorative pixels'), 'art/gameplay separation rule is required')
 assert.ok(manifest.includes('requiredForVerticalSlice: true'), 'vertical-slice manifest entries are required')
-assert.ok(!direction.includes('copy characters/maps from existing game franchises'), 'originality wording should use the canonical prohibition phrase')
+assert.ok(direction.includes('copy characters/maps from existing game franchises'), 'originality prohibition is required')
 
 console.log('Kiddy Clash premium art contract validated.')

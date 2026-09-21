@@ -241,40 +241,29 @@ export class RaceScene extends Phaser.Scene {
   }
 
   private bindKeyboardActions() {
-    const keyboard = this.input.keyboard!
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (this.finished || event.repeat) return
 
-    const onJump = () => {
-      if (this.finished) return
-      this.jumpKeyHeld = true
-
-      if (this.isPlayerGrounded()) {
-        this.performJump()
-      } else {
+      if (event.code === 'Space' || event.code === 'ArrowUp' || event.code === 'KeyW') {
+        event.preventDefault()
         this.jumpQueued = true
+        this.jumpKeyHeld = true
+        updateQaState({ lastEvent: 'keyboard-jump-request' })
+        return
       }
-    }
 
-    const onAbility = () => {
-      if (this.finished) return
-      this.abilityKeyHeld = true
-
-      if (this.isPlayerGrounded()) {
-        this.useLeoAbility(this.time.now)
-      } else {
+      if (event.code === 'ShiftLeft' || event.code === 'ShiftRight') {
+        event.preventDefault()
         this.abilityQueued = true
+        this.abilityKeyHeld = true
+        updateQaState({ lastEvent: 'keyboard-ability-request' })
       }
     }
 
-    keyboard.on('keydown-SPACE', onJump)
-    keyboard.on('keydown-UP', onJump)
-    keyboard.on('keydown-W', onJump)
-    keyboard.on('keydown-SHIFT', onAbility)
+    window.addEventListener('keydown', onKeyDown)
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-      keyboard.off('keydown-SPACE', onJump)
-      keyboard.off('keydown-UP', onJump)
-      keyboard.off('keydown-W', onJump)
-      keyboard.off('keydown-SHIFT', onAbility)
+      window.removeEventListener('keydown', onKeyDown)
     })
   }
 

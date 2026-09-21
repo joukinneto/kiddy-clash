@@ -13,6 +13,8 @@ export type KiddyQaState = {
   finished: boolean
   spaceDown: boolean
   shiftDown: boolean
+  jumpCount: number
+  abilityCount: number
   lastEvent: string
 }
 
@@ -45,6 +47,8 @@ export function initializeQaState() {
     finished: false,
     spaceDown: false,
     shiftDown: false,
+    jumpCount: 0,
+    abilityCount: 0,
     lastEvent: 'boot',
   }
 }

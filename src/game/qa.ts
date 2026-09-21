@@ -11,6 +11,8 @@ export type KiddyQaState = {
   progress: number
   abilityReadyAt: number
   finished: boolean
+  spaceDown: boolean
+  shiftDown: boolean
   lastEvent: string
 }
 
@@ -41,6 +43,8 @@ export function initializeQaState() {
     progress: 0,
     abilityReadyAt: 0,
     finished: false,
+    spaceDown: false,
+    shiftDown: false,
     lastEvent: 'boot',
   }
 }

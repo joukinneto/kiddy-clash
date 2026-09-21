@@ -642,21 +642,44 @@ export class RaceScene extends Phaser.Scene {
   private createHud() {
     const t = text[this.language]
 
-    this.add.rectangle(640, 49, 1240, 78, 0xffffff, 0.86)
+    const chrome = this.add.graphics()
       .setScrollFactor(0)
       .setDepth(20)
-      .setStrokeStyle(3, 0xcde9f7)
 
-    this.add.text(165, 17, `🏝️ ${t.race}`, {
+    // Left: race + hero ability
+    chrome.fillStyle(0xffffff, 0.92)
+    chrome.fillRoundedRect(18, 14, 300, 76, 24)
+    chrome.lineStyle(3, 0xffffff, 0.9)
+    chrome.strokeRoundedRect(18, 14, 300, 76, 24)
+    chrome.lineStyle(3, 0x9ccde8, 0.72)
+    chrome.strokeRoundedRect(22, 18, 292, 68, 20)
+
+    // Center: objective + race progress
+    chrome.fillStyle(0xffffff, 0.92)
+    chrome.fillRoundedRect(334, 14, 532, 76, 24)
+    chrome.lineStyle(3, 0xffffff, 0.9)
+    chrome.strokeRoundedRect(334, 14, 532, 76, 24)
+    chrome.lineStyle(3, 0x9ccde8, 0.72)
+    chrome.strokeRoundedRect(338, 18, 524, 68, 20)
+
+    // Right: checkpoint, stars, timer and position
+    chrome.fillStyle(0xffffff, 0.92)
+    chrome.fillRoundedRect(882, 14, 380, 76, 24)
+    chrome.lineStyle(3, 0xffffff, 0.9)
+    chrome.strokeRoundedRect(882, 14, 380, 76, 24)
+    chrome.lineStyle(3, 0x9ccde8, 0.72)
+    chrome.strokeRoundedRect(886, 18, 372, 68, 20)
+
+    this.add.text(40, 25, `🏝️  ${t.race}`, {
       fontFamily: 'Arial Rounded MT Bold, sans-serif',
-      fontSize: '19px',
+      fontSize: '18px',
       color: '#267ee6',
       fontStyle: 'bold',
     }).setScrollFactor(0).setDepth(21)
 
     this.abilityText = this.add.text(
-      165,
-      45,
+      40,
+      57,
       `👑 ${abilityLabel(leo, this.language)}: ${t.ready}`,
       {
         fontFamily: 'Arial Rounded MT Bold, sans-serif',
@@ -666,18 +689,19 @@ export class RaceScene extends Phaser.Scene {
       },
     ).setScrollFactor(0).setDepth(21)
 
-    this.add.text(635, 17, t.objective, {
+    this.add.text(600, 23, t.objective, {
       fontFamily: 'Arial Rounded MT Bold, sans-serif',
-      fontSize: '20px',
+      fontSize: '19px',
       color: '#17324d',
+      fontStyle: 'bold',
     }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(21)
 
-    const progressTrack = this.add.rectangle(430, 54, 405, 13, 0xc8dce8)
+    const progressTrack = this.add.rectangle(410, 61, 380, 15, 0xcfe0ea)
       .setOrigin(0, 0.5)
       .setScrollFactor(0)
       .setDepth(21)
 
-    this.progressFill = this.add.rectangle(430, 54, 405, 13, 0x48c75b)
+    this.progressFill = this.add.rectangle(410, 61, 380, 15, 0x48c75b)
       .setOrigin(0, 0.5)
       .setScrollFactor(0)
       .setDepth(22)
@@ -686,29 +710,41 @@ export class RaceScene extends Phaser.Scene {
     progressTrack.setStrokeStyle(2, 0x8eb4ca)
 
     CHECKPOINTS.forEach((checkpoint) => {
-      const markerX = 430 + ((checkpoint.x - START_X) / (FINISH_X - START_X)) * 405
-      this.add.circle(markerX, 54, 5, 0x267ee6)
+      const markerX = 410 + ((checkpoint.x - START_X) / (FINISH_X - START_X)) * 380
+      this.add.circle(markerX, 61, 6, 0x267ee6)
+        .setStrokeStyle(2, 0xffffff, 0.95)
         .setScrollFactor(0)
         .setDepth(23)
     })
 
-    this.progressText = this.add.text(640, 66, `${t.progress}: 0%`, {
+    this.progressText = this.add.text(600, 72, `${t.progress}: 0%`, {
       fontFamily: 'Arial Rounded MT Bold, sans-serif',
-      fontSize: '11px',
+      fontSize: '10px',
       color: '#4b6d82',
       fontStyle: 'bold',
     }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(23)
 
-    this.checkpointText = this.add.text(850, 18, `🚩 ${t.checkpoint}: 0/${CHECKPOINTS.length}`, {
+    this.checkpointText = this.add.text(904, 25, `🚩 ${t.checkpoint}: 0/${CHECKPOINTS.length}`, {
       fontFamily: 'Arial Rounded MT Bold, sans-serif',
-      fontSize: '14px',
+      fontSize: '13px',
       color: '#267ee6',
       fontStyle: 'bold',
     }).setScrollFactor(0).setDepth(21)
 
-    this.starsText = this.add.text(1010, 17, `⭐ ${t.stars}: 0`, this.hudStyle()).setScrollFactor(0).setDepth(21)
-    this.timerText = this.add.text(1010, 48, '⏱ 00:00', this.hudStyle()).setScrollFactor(0).setDepth(21)
-    this.positionText = this.add.text(1105, 48, `🏆 ${t.position}: 1/4`, this.hudStyle()).setScrollFactor(0).setDepth(21)
+    this.starsText = this.add.text(1080, 25, `⭐ ${t.stars}: 0`, {
+      ...this.hudStyle(),
+      fontSize: '14px',
+    }).setScrollFactor(0).setDepth(21)
+
+    this.timerText = this.add.text(904, 57, '⏱ 00:00', {
+      ...this.hudStyle(),
+      fontSize: '14px',
+    }).setScrollFactor(0).setDepth(21)
+
+    this.positionText = this.add.text(1080, 57, `🏆 ${t.position}: 1/4`, {
+      ...this.hudStyle(),
+      fontSize: '14px',
+    }).setScrollFactor(0).setDepth(21)
   }
 
   private completeRace() {

@@ -14,6 +14,8 @@ type QaState = {
   progress: number
   abilityReadyAt: number
   finished: boolean
+  spaceDown: boolean
+  shiftDown: boolean
   lastEvent: string
 }
 
@@ -61,6 +63,7 @@ test('keyboard moves Leo, jumps and activates Super Jump', async ({ page }, test
 
   await page.waitForFunction(() => window.__KIDDY_QA__?.grounded === true)
   await page.keyboard.down('Space')
+  await page.waitForFunction(() => window.__KIDDY_QA__?.spaceDown === true)
   await page.waitForTimeout(120)
   await page.keyboard.up('Space')
   await page.waitForFunction(() => window.__KIDDY_QA__?.lastEvent === 'jump')
@@ -70,6 +73,7 @@ test('keyboard moves Leo, jumps and activates Super Jump', async ({ page }, test
 
   await page.waitForFunction(() => window.__KIDDY_QA__?.grounded === true)
   await page.keyboard.down('Shift')
+  await page.waitForFunction(() => window.__KIDDY_QA__?.shiftDown === true)
   await page.waitForTimeout(120)
   await page.keyboard.up('Shift')
   await page.waitForFunction(() => window.__KIDDY_QA__?.lastEvent === 'leo-super-jump')

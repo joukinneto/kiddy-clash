@@ -574,7 +574,9 @@ export class RaceScene extends Phaser.Scene {
     this.add.triangle(3155, 115, -36, 45, 0, 0, 36, 45, 0x6b72da).setDepth(-17)
     this.add.rectangle(3090, 216, 272, 24, 0x72d66c).setDepth(-19)
     for (const windowX of [3058, 3090, 3122]) {
-      this.add.roundedRectangle?.(windowX, 165, 18, 28, 8, 0x79c8ff)
+      this.add.rectangle(windowX, 165, 18, 28, 0x79c8ff)
+        .setDepth(-16)
+        .setStrokeStyle(3, 0xffffff, 0.72)
     }
 
     // Decorative balloons / dirigible silhouettes.

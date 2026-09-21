@@ -172,6 +172,7 @@ export class RaceScene extends Phaser.Scene {
       D: Phaser.Input.Keyboard.Key
     }
     this.abilityKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT)
+    this.bindKeyboardActions()
 
     this.createHud()
     if (this.sys.game.device.input.touch) this.createTouchControls()
@@ -213,7 +214,7 @@ export class RaceScene extends Phaser.Scene {
       this.player.setVelocityX(this.player.body!.velocity.x * (inMud ? 0.72 : 0.82))
     }
 
-    const grounded = (this.player.body as Phaser.Physics.Arcade.Body).blocked.down
+    const grounded = this.isPlayerGrounded()
     const jumpKeyDown = this.cursors.up.isDown || space.isDown || w.isDown
     if (jumpKeyDown && !this.jumpKeyHeld) {
       this.jumpQueued = true
@@ -240,6 +241,55 @@ export class RaceScene extends Phaser.Scene {
     this.updateBots(time)
     this.updateHud(time)
     this.updateQaTelemetry()
+  }
+
+  private bindKeyboardActions() {
+    const keyboard = this.input.keyboard!
+
+    const onJump = () => {
+      if (this.finished) return
+      this.jumpKeyHeld = true
+
+      if (this.isPlayerGrounded()) {
+        this.performJump()
+      } else {
+        this.jumpQueued = true
+      }
+    }
+
+    const onAbility = () => {
+      if (this.finished) return
+      this.abilityKeyHeld = true
+
+      if (this.isPlayerGrounded()) {
+        this.useLeoAbility(this.time.now)
+      } else {
+        this.abilityQueued = true
+      }
+    }
+
+    keyboard.on('keydown-SPACE', onJump)
+    keyboard.on('keydown-UP', onJump)
+    keyboard.on('keydown-W', onJump)
+    keyboard.on('keydown-SHIFT', onAbility)
+
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      keyboard.off('keydown-SPACE', onJump)
+      keyboard.off('keydown-UP', onJump)
+      keyboard.off('keydown-W', onJump)
+      keyboard.off('keydown-SHIFT', onAbility)
+    })
+  }
+
+  private isPlayerGrounded() {
+    const body = this.player.body as Phaser.Physics.Arcade.Body
+    return body.blocked.down || body.touching.down || body.wasTouching.down
+  }
+
+  private performJump() {
+    this.player.setVelocityY(-565)
+    this.jumpQueued = false
+    updateQaState({ lastEvent: 'jump' })
   }
 
   private createObstacles() {
@@ -420,7 +470,7 @@ export class RaceScene extends Phaser.Scene {
       playerY: this.player.y,
       velocityX: body.velocity.x,
       velocityY: body.velocity.y,
-      grounded: body.blocked.down,
+      grounded: this.isPlayerGrounded(),
       stars: this.stars,
       checkpoint: this.activeCheckpoint,
       position: place,

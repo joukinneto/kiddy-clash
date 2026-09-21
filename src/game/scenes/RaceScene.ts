@@ -222,10 +222,7 @@ export class RaceScene extends Phaser.Scene {
     this.jumpKeyHeld = jumpKeyDown
 
     if (this.jumpQueued && grounded) {
-      this.player.setVelocityY(-565)
-      this.jumpQueued = false
-      this.jumpCount += 1
-      updateQaState({ jumpCount: this.jumpCount, lastEvent: 'jump' })
+      this.performJump()
     }
 
     const abilityKeyDown = this.abilityKey.isDown
@@ -289,7 +286,8 @@ export class RaceScene extends Phaser.Scene {
   private performJump() {
     this.player.setVelocityY(-565)
     this.jumpQueued = false
-    updateQaState({ lastEvent: 'jump' })
+    this.jumpCount += 1
+    updateQaState({ jumpCount: this.jumpCount, lastEvent: 'jump' })
   }
 
   private createObstacles() {

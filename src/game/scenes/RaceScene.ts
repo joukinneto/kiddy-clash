@@ -55,6 +55,11 @@ export class RaceScene extends Phaser.Scene {
   private player!: Phaser.Physics.Arcade.Sprite
   private bots: Phaser.Physics.Arcade.Sprite[] = []
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys
+  private movementKeys!: {
+    W: Phaser.Input.Keyboard.Key
+    A: Phaser.Input.Keyboard.Key
+    D: Phaser.Input.Keyboard.Key
+  }
   private abilityKey!: Phaser.Input.Keyboard.Key
   private stars = 0
   private finished = false
@@ -155,7 +160,11 @@ export class RaceScene extends Phaser.Scene {
     }).setOrigin(0.5)
 
     this.cursors = this.input.keyboard!.createCursorKeys()
-    this.input.keyboard!.addKeys('W,A,D,SPACE')
+    this.movementKeys = this.input.keyboard!.addKeys('W,A,D') as {
+      W: Phaser.Input.Keyboard.Key
+      A: Phaser.Input.Keyboard.Key
+      D: Phaser.Input.Keyboard.Key
+    }
     this.abilityKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT)
 
     this.createHud()
@@ -179,11 +188,8 @@ export class RaceScene extends Phaser.Scene {
       return
     }
 
-    const keys = this.input.keyboard!.keys
-    const a = keys[Phaser.Input.Keyboard.KeyCodes.A]
-    const d = keys[Phaser.Input.Keyboard.KeyCodes.D]
-    const w = keys[Phaser.Input.Keyboard.KeyCodes.W]
-    const space = keys[Phaser.Input.Keyboard.KeyCodes.SPACE]
+    const { A: a, D: d, W: w } = this.movementKeys
+    const space = this.cursors.space
 
     const left = this.cursors.left.isDown || a?.isDown || this.leftHeld
     const right = this.cursors.right.isDown || d?.isDown || this.rightHeld

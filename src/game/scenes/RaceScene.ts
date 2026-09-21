@@ -81,6 +81,8 @@ export class RaceScene extends Phaser.Scene {
   private rightHeld = false
   private jumpQueued = false
   private abilityQueued = false
+  private jumpKeyHeld = false
+  private abilityKeyHeld = false
 
   constructor(language: GameLanguage) {
     super('race')
@@ -208,19 +210,25 @@ export class RaceScene extends Phaser.Scene {
     }
 
     const grounded = (this.player.body as Phaser.Physics.Arcade.Body).blocked.down
-    const jumpPressed =
-      Phaser.Input.Keyboard.JustDown(this.cursors.up) ||
-      Phaser.Input.Keyboard.JustDown(space) ||
-      Phaser.Input.Keyboard.JustDown(w)
+    const jumpKeyDown = this.cursors.up.isDown || space.isDown || w.isDown
+    if (jumpKeyDown && !this.jumpKeyHeld) {
+      this.jumpQueued = true
+    }
+    this.jumpKeyHeld = jumpKeyDown
 
-    if ((jumpPressed || this.jumpQueued) && grounded) {
+    if (this.jumpQueued && grounded) {
       this.player.setVelocityY(-565)
       this.jumpQueued = false
       updateQaState({ lastEvent: 'jump' })
     }
 
-    const abilityPressed = Phaser.Input.Keyboard.JustDown(this.abilityKey)
-    if ((abilityPressed || this.abilityQueued) && grounded) {
+    const abilityKeyDown = this.abilityKey.isDown
+    if (abilityKeyDown && !this.abilityKeyHeld) {
+      this.abilityQueued = true
+    }
+    this.abilityKeyHeld = abilityKeyDown
+
+    if (this.abilityQueued && grounded) {
       this.useLeoAbility(time)
     }
 

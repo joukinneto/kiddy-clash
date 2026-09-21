@@ -419,6 +419,8 @@ export class RaceScene extends Phaser.Scene {
       progress: Phaser.Math.Clamp((this.player.x - START_X) / (FINISH_X - START_X), 0, 1),
       abilityReadyAt: this.abilityReadyAt,
       finished: this.finished,
+      spaceDown: this.cursors.space.isDown,
+      shiftDown: this.abilityKey.isDown,
     })
   }
 

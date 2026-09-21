@@ -47,6 +47,7 @@ test('keyboard moves Leo, jumps and activates Super Jump', async ({ page }, test
   await page.getByRole('button', { name: /Jogar agora/i }).click()
   await page.waitForFunction(() => window.__KIDDY_QA__?.sceneReady === true)
   await page.waitForFunction(() => window.__KIDDY_QA__?.grounded === true)
+  await page.locator('canvas').click()
 
   const start = await qaState(page)
 

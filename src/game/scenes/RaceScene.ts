@@ -91,6 +91,13 @@ export class RaceScene extends Phaser.Scene {
     this.language = language
   }
 
+  preload() {
+    this.load.svg('leo-racer', './assets/characters/leo.svg', { width: 192, height: 224 })
+    this.load.svg('bibi-racer', './assets/characters/bibi.svg', { width: 192, height: 224 })
+    this.load.svg('max-racer', './assets/characters/max.svg', { width: 192, height: 224 })
+    this.load.svg('foxy-racer', './assets/characters/foxy.svg', { width: 192, height: 224 })
+  }
+
   create() {
     const t = text[this.language]
     this.jumpCount = 0
@@ -118,14 +125,14 @@ export class RaceScene extends Phaser.Scene {
     ground.create(2460, 515, 'platform').refreshBody()
     ground.create(2830, 430, 'platform').refreshBody()
 
-    this.player = this.createRacer(START_X, 548, 'leo', 86, 98)
+    this.player = this.createRacer(START_X, 548, 'leo-racer', 92, 106)
     this.player.setBounce(0.02)
     this.player.setMaxVelocity(520, 980)
 
     this.bots = [
-      this.createRacer(START_X - 55, 552, 'bibi', 74, 92),
-      this.createRacer(START_X - 110, 550, 'max', 78, 92),
-      this.createRacer(START_X - 165, 550, 'foxy', 78, 92),
+      this.createRacer(START_X - 55, 552, 'bibi-racer', 82, 100),
+      this.createRacer(START_X - 110, 550, 'max-racer', 84, 100),
+      this.createRacer(START_X - 165, 550, 'foxy-racer', 84, 100),
     ]
 
     this.physics.add.collider(this.player, ground)
@@ -501,89 +508,178 @@ export class RaceScene extends Phaser.Scene {
   }
 
   private createWorldArt() {
-    this.add.rectangle(1800, 360, LEVEL_WIDTH, 720, 0x67c4ff).setDepth(-20)
+    // Layered fantasy world. Gameplay geometry remains separate so the
+    // visual pass can evolve without changing physics or QA coordinates.
+    this.add.rectangle(1800, 360, LEVEL_WIDTH, 720, 0x66c7ff).setDepth(-30)
+    this.add.rectangle(1800, 545, LEVEL_WIDTH, 350, 0xa8e8ff, 0.28).setDepth(-29)
 
-    for (let i = 0; i < 16; i += 1) {
-      const x = 150 + i * 245
-      const y = 100 + (i % 4) * 55
-      this.add.ellipse(x, y, 170, 62, 0xffffff, 0.42).setDepth(-18)
-      this.add.ellipse(x + 55, y + 5, 120, 54, 0xffffff, 0.34).setDepth(-18)
+    const sun = this.add.circle(420, 115, 62, 0xffef8b, 0.95).setDepth(-28)
+    sun.setStrokeStyle(14, 0xffffff, 0.16)
+
+    for (let i = 0; i < 18; i += 1) {
+      const x = 100 + i * 220
+      const y = 82 + (i % 5) * 43
+      const scale = 0.72 + (i % 3) * 0.16
+      this.add.ellipse(x, y, 168 * scale, 54 * scale, 0xffffff, 0.38).setDepth(-27)
+      this.add.ellipse(x + 48, y - 4, 104 * scale, 47 * scale, 0xffffff, 0.32).setDepth(-27)
     }
 
+    // Distant mountain / island silhouettes create parallax-like depth.
+    const distant = this.add.graphics().setDepth(-25)
+    distant.fillStyle(0x62b96c, 0.45)
+    distant.fillTriangle(0, 500, 450, 220, 920, 500)
+    distant.fillTriangle(680, 500, 1220, 250, 1730, 500)
+    distant.fillTriangle(1450, 500, 2140, 210, 2800, 500)
+    distant.fillTriangle(2480, 500, 3120, 245, 3600, 500)
+
     const islandPositions = [
-      [620, 285, 170, 70],
-      [1180, 240, 220, 85],
-      [1750, 305, 190, 72],
-      [2320, 245, 240, 88],
-      [3080, 285, 220, 78],
+      [620, 285, 190, 78],
+      [1180, 235, 250, 92],
+      [1750, 310, 205, 78],
+      [2320, 238, 270, 96],
+      [3080, 280, 245, 88],
     ] as const
 
     islandPositions.forEach(([x, y, width, height], index) => {
-      this.add.ellipse(x, y, width, height, 0x7d5a37).setDepth(-15)
-      this.add.ellipse(x, y - 17, width * 0.93, height * 0.55, 0x63c85d).setDepth(-14)
-      if (index % 2 === 0) {
-        this.add.rectangle(x, y + 60, 16, 95, 0x9be9ff, 0.75).setDepth(-16)
+      // shadow under island
+      this.add.ellipse(x + 8, y + 18, width * 1.04, height * 0.82, 0x31556a, 0.18).setDepth(-23)
+      this.add.ellipse(x, y, width, height, 0x7f5637).setDepth(-22)
+      this.add.triangle(
+        x,
+        y + height * 0.35,
+        -width * 0.35,
+        0,
+        width * 0.35,
+        0,
+        0,
+        height * 1.15,
+        0x6a472f,
+      ).setDepth(-22)
+      this.add.ellipse(x, y - 18, width * 0.94, height * 0.58, 0x66cf63).setDepth(-21)
+      this.add.ellipse(x, y - 28, width * 0.68, height * 0.22, 0xa3ef7f, 0.7).setDepth(-20)
+
+      if (index !== 2) {
+        const fallHeight = index % 2 === 0 ? 112 : 82
+        this.add.rectangle(x + width * 0.2, y + 64, 14, fallHeight, 0xb8f4ff, 0.74).setDepth(-23)
+        this.add.rectangle(x + width * 0.2 + 6, y + 64, 5, fallHeight, 0xffffff, 0.44).setDepth(-22)
+        this.add.ellipse(x + width * 0.2, y + 64 + fallHeight / 2, 36, 12, 0xd7f9ff, 0.32).setDepth(-21)
       }
+
+      // shrubs and tiny trees
+      const treeX = x - width * 0.22
+      this.add.rectangle(treeX, y - 54, 9, 31, 0x765032).setDepth(-19)
+      this.add.circle(treeX, y - 75, 21, index % 2 === 0 ? 0x4fb65b : 0x5ec767).setDepth(-18)
+      this.add.circle(treeX - 13, y - 68, 15, 0x6bd06c).setDepth(-18)
+    })
+
+    // Castle landmark.
+    this.add.rectangle(3090, 165, 126, 102, 0xf7f1df).setDepth(-18)
+    this.add.rectangle(3025, 181, 54, 78, 0xf1e8d5).setDepth(-18)
+    this.add.rectangle(3155, 181, 54, 78, 0xf1e8d5).setDepth(-18)
+    this.add.triangle(3025, 115, -36, 45, 0, 0, 36, 45, 0x6b72da).setDepth(-17)
+    this.add.triangle(3090, 103, -48, 52, 0, 0, 48, 52, 0x4f76d8).setDepth(-17)
+    this.add.triangle(3155, 115, -36, 45, 0, 0, 36, 45, 0x6b72da).setDepth(-17)
+    this.add.rectangle(3090, 216, 272, 24, 0x72d66c).setDepth(-19)
+    for (const windowX of [3058, 3090, 3122]) {
+      this.add.rectangle(windowX, 165, 18, 28, 0x79c8ff)
+        .setDepth(-16)
+        .setStrokeStyle(3, 0xffffff, 0.72)
+    }
+
+    // Decorative balloons / dirigible silhouettes.
+    this.add.ellipse(960, 138, 92, 54, 0xff8b71, 0.92).setDepth(-16)
+    this.add.rectangle(960, 177, 44, 14, 0x7b5139).setDepth(-16)
+    this.add.line(0, 0, 938, 157, 948, 177, 0x6a4a3a, 0.6).setDepth(-17)
+    this.add.line(0, 0, 982, 157, 972, 177, 0x6a4a3a, 0.6).setDepth(-17)
+
+    this.add.ellipse(2760, 112, 74, 44, 0x8b78ea, 0.82).setDepth(-16)
+    this.add.rectangle(2760, 143, 35, 11, 0x7b5139).setDepth(-16)
+
+    // Rainbow landmark.
+    const rainbow = this.add.graphics().setDepth(-18)
+    const rainbowBands = [
+      [0xff6f78, 16, 270],
+      [0xffc84f, 14, 250],
+      [0x62d56c, 14, 231],
+      [0x4b8de9, 14, 212],
+      [0xa276e8, 13, 194],
+    ] as const
+    rainbowBands.forEach(([color, thickness, radius]) => {
+      rainbow.lineStyle(thickness, color, 0.82)
+      rainbow.beginPath()
+      rainbow.arc(2550, 435, radius, Math.PI, Math.PI * 2)
+      rainbow.strokePath()
     })
 
     PIT_ZONES.forEach(({ from, to }) => {
-      this.add.ellipse((from + to) / 2, 665, to - from, 46, 0x4c7fa0, 0.5).setDepth(-12)
+      this.add.ellipse((from + to) / 2, 665, to - from, 54, 0x4f8dad, 0.54).setDepth(-12)
+      this.add.ellipse((from + to) / 2, 655, (to - from) * 0.84, 24, 0x9de9ff, 0.32).setDepth(-11)
     })
 
     MUD_ZONES.forEach(({ from, to }) => {
-      this.add.rectangle((from + to) / 2, 607, to - from, 24, 0x8c633f, 0.8).setDepth(1)
+      this.add.ellipse((from + to) / 2, 612, to - from, 31, 0x875a3a, 0.88).setDepth(1)
+      this.add.ellipse((from + to) / 2, 607, (to - from) * 0.68, 10, 0xc08b58, 0.5).setDepth(2)
     })
 
-    this.add.rectangle(3090, 155, 120, 95, 0xe9f4ff).setDepth(-13)
-    this.add.triangle(3030, 112, 0, 60, 60, 0, 120, 60, 0x397cc6).setDepth(-12)
-    this.add.triangle(3150, 112, 0, 60, 60, 0, 120, 60, 0x397cc6).setDepth(-12)
-    this.add.rectangle(3090, 215, 250, 22, 0x80d878).setDepth(-13)
+    // Foreground vegetation placed outside the racing path.
+    for (const x of [260, 820, 1380, 1690, 2970, 3330]) {
+      this.add.circle(x - 18, 602, 24, 0x4cb65c).setDepth(0)
+      this.add.circle(x + 8, 600, 30, 0x58c767).setDepth(0)
+      this.add.circle(x + 32, 606, 19, 0x72d46c).setDepth(0)
+    }
 
-    const rainbow = this.add.graphics().setDepth(-17)
-    rainbow.lineStyle(14, 0xff6f6f, 0.8)
-    rainbow.beginPath()
-    rainbow.arc(2550, 420, 260, Math.PI, Math.PI * 2)
-    rainbow.strokePath()
-    rainbow.lineStyle(12, 0xffd45e, 0.8)
-    rainbow.beginPath()
-    rainbow.arc(2550, 420, 242, Math.PI, Math.PI * 2)
-    rainbow.strokePath()
-    rainbow.lineStyle(12, 0x5fd97d, 0.8)
-    rainbow.beginPath()
-    rainbow.arc(2550, 420, 224, Math.PI, Math.PI * 2)
-    rainbow.strokePath()
-    rainbow.lineStyle(12, 0x4b8de9, 0.8)
-    rainbow.beginPath()
-    rainbow.arc(2550, 420, 206, Math.PI, Math.PI * 2)
-    rainbow.strokePath()
-
-    this.add.text(425, 250, '⭐  KIDDY CLASH  ⭐', {
+    this.add.text(425, 252, '⭐  KIDDY CLASH  ⭐', {
       fontFamily: 'Arial Rounded MT Bold, sans-serif',
-      fontSize: '28px',
+      fontSize: '30px',
       color: '#ffffff',
-      backgroundColor: '#267ee6bb',
-      padding: { x: 16, y: 10 },
-    }).setOrigin(0.5).setDepth(-10)
+      stroke: '#1d65a8',
+      strokeThickness: 5,
+      backgroundColor: '#2b83dfbb',
+      padding: { x: 18, y: 11 },
+    }).setOrigin(0.5).setDepth(-9)
   }
 
   private createHud() {
     const t = text[this.language]
 
-    this.add.rectangle(640, 49, 1240, 78, 0xffffff, 0.86)
+    const chrome = this.add.graphics()
       .setScrollFactor(0)
       .setDepth(20)
-      .setStrokeStyle(3, 0xcde9f7)
 
-    this.add.text(165, 17, `🏝️ ${t.race}`, {
+    // Left: race + hero ability
+    chrome.fillStyle(0xffffff, 0.92)
+    chrome.fillRoundedRect(18, 14, 300, 76, 24)
+    chrome.lineStyle(3, 0xffffff, 0.9)
+    chrome.strokeRoundedRect(18, 14, 300, 76, 24)
+    chrome.lineStyle(3, 0x9ccde8, 0.72)
+    chrome.strokeRoundedRect(22, 18, 292, 68, 20)
+
+    // Center: objective + race progress
+    chrome.fillStyle(0xffffff, 0.92)
+    chrome.fillRoundedRect(334, 14, 532, 76, 24)
+    chrome.lineStyle(3, 0xffffff, 0.9)
+    chrome.strokeRoundedRect(334, 14, 532, 76, 24)
+    chrome.lineStyle(3, 0x9ccde8, 0.72)
+    chrome.strokeRoundedRect(338, 18, 524, 68, 20)
+
+    // Right: checkpoint, stars, timer and position
+    chrome.fillStyle(0xffffff, 0.92)
+    chrome.fillRoundedRect(882, 14, 380, 76, 24)
+    chrome.lineStyle(3, 0xffffff, 0.9)
+    chrome.strokeRoundedRect(882, 14, 380, 76, 24)
+    chrome.lineStyle(3, 0x9ccde8, 0.72)
+    chrome.strokeRoundedRect(886, 18, 372, 68, 20)
+
+    this.add.text(40, 25, `🏝️  ${t.race}`, {
       fontFamily: 'Arial Rounded MT Bold, sans-serif',
-      fontSize: '19px',
+      fontSize: '18px',
       color: '#267ee6',
       fontStyle: 'bold',
     }).setScrollFactor(0).setDepth(21)
 
     this.abilityText = this.add.text(
-      165,
-      45,
+      40,
+      57,
       `👑 ${abilityLabel(leo, this.language)}: ${t.ready}`,
       {
         fontFamily: 'Arial Rounded MT Bold, sans-serif',
@@ -593,18 +689,19 @@ export class RaceScene extends Phaser.Scene {
       },
     ).setScrollFactor(0).setDepth(21)
 
-    this.add.text(635, 17, t.objective, {
+    this.add.text(600, 23, t.objective, {
       fontFamily: 'Arial Rounded MT Bold, sans-serif',
-      fontSize: '20px',
+      fontSize: '19px',
       color: '#17324d',
+      fontStyle: 'bold',
     }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(21)
 
-    const progressTrack = this.add.rectangle(430, 54, 405, 13, 0xc8dce8)
+    const progressTrack = this.add.rectangle(410, 61, 380, 15, 0xcfe0ea)
       .setOrigin(0, 0.5)
       .setScrollFactor(0)
       .setDepth(21)
 
-    this.progressFill = this.add.rectangle(430, 54, 405, 13, 0x48c75b)
+    this.progressFill = this.add.rectangle(410, 61, 380, 15, 0x48c75b)
       .setOrigin(0, 0.5)
       .setScrollFactor(0)
       .setDepth(22)
@@ -613,29 +710,41 @@ export class RaceScene extends Phaser.Scene {
     progressTrack.setStrokeStyle(2, 0x8eb4ca)
 
     CHECKPOINTS.forEach((checkpoint) => {
-      const markerX = 430 + ((checkpoint.x - START_X) / (FINISH_X - START_X)) * 405
-      this.add.circle(markerX, 54, 5, 0x267ee6)
+      const markerX = 410 + ((checkpoint.x - START_X) / (FINISH_X - START_X)) * 380
+      this.add.circle(markerX, 61, 6, 0x267ee6)
+        .setStrokeStyle(2, 0xffffff, 0.95)
         .setScrollFactor(0)
         .setDepth(23)
     })
 
-    this.progressText = this.add.text(640, 66, `${t.progress}: 0%`, {
+    this.progressText = this.add.text(600, 72, `${t.progress}: 0%`, {
       fontFamily: 'Arial Rounded MT Bold, sans-serif',
-      fontSize: '11px',
+      fontSize: '10px',
       color: '#4b6d82',
       fontStyle: 'bold',
     }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(23)
 
-    this.checkpointText = this.add.text(850, 18, `🚩 ${t.checkpoint}: 0/${CHECKPOINTS.length}`, {
+    this.checkpointText = this.add.text(904, 25, `🚩 ${t.checkpoint}: 0/${CHECKPOINTS.length}`, {
       fontFamily: 'Arial Rounded MT Bold, sans-serif',
-      fontSize: '14px',
+      fontSize: '13px',
       color: '#267ee6',
       fontStyle: 'bold',
     }).setScrollFactor(0).setDepth(21)
 
-    this.starsText = this.add.text(1010, 17, `⭐ ${t.stars}: 0`, this.hudStyle()).setScrollFactor(0).setDepth(21)
-    this.timerText = this.add.text(1010, 48, '⏱ 00:00', this.hudStyle()).setScrollFactor(0).setDepth(21)
-    this.positionText = this.add.text(1105, 48, `🏆 ${t.position}: 1/4`, this.hudStyle()).setScrollFactor(0).setDepth(21)
+    this.starsText = this.add.text(1080, 25, `⭐ ${t.stars}: 0`, {
+      ...this.hudStyle(),
+      fontSize: '14px',
+    }).setScrollFactor(0).setDepth(21)
+
+    this.timerText = this.add.text(904, 57, '⏱ 00:00', {
+      ...this.hudStyle(),
+      fontSize: '14px',
+    }).setScrollFactor(0).setDepth(21)
+
+    this.positionText = this.add.text(1080, 57, `🏆 ${t.position}: 1/4`, {
+      ...this.hudStyle(),
+      fontSize: '14px',
+    }).setScrollFactor(0).setDepth(21)
   }
 
   private completeRace() {
@@ -740,103 +849,8 @@ export class RaceScene extends Phaser.Scene {
   private createTextures() {
     const graphics = this.add.graphics()
 
-    // Gameplay sprites are generated by Phaser itself for deterministic
-    // rendering across browser, Capacitor and Electron. The richer SVG
-    // character art remains the canonical menu/presentation artwork.
-    graphics.fillStyle(0x8a4a20)
-    graphics.fillCircle(48, 34, 31)
-    graphics.fillStyle(0xf3a340)
-    graphics.fillCircle(48, 36, 24)
-    graphics.fillCircle(28, 17, 9)
-    graphics.fillCircle(68, 17, 9)
-    graphics.fillStyle(0x17324d)
-    graphics.fillCircle(39, 33, 4)
-    graphics.fillCircle(57, 33, 4)
-    graphics.fillStyle(0xffd9a3)
-    graphics.fillEllipse(48, 47, 21, 15)
-    graphics.fillStyle(0xe84a3a)
-    graphics.fillRoundedRect(27, 62, 42, 34, 11)
-    graphics.fillStyle(0xffd43b)
-    graphics.fillTriangle(48, 69, 42, 82, 54, 82)
-    graphics.fillStyle(0x2d83dd)
-    graphics.fillRoundedRect(31, 93, 13, 16, 5)
-    graphics.fillRoundedRect(52, 93, 13, 16, 5)
-    graphics.generateTexture('leo', 96, 112)
-    graphics.clear()
-
-    graphics.fillStyle(0xffffff)
-    graphics.fillRoundedRect(27, 0, 14, 42, 7)
-    graphics.fillRoundedRect(55, 0, 14, 42, 7)
-    graphics.fillCircle(48, 40, 26)
-    graphics.fillStyle(0xf0518e)
-    graphics.fillRoundedRect(27, 65, 42, 32, 11)
-    graphics.fillStyle(0x17324d)
-    graphics.fillCircle(39, 38, 4)
-    graphics.fillCircle(57, 38, 4)
-    graphics.fillStyle(0xf28aa8)
-    graphics.fillEllipse(48, 49, 9, 6)
-    graphics.fillStyle(0xffffff)
-    graphics.fillRoundedRect(31, 94, 12, 15, 5)
-    graphics.fillRoundedRect(53, 94, 12, 15, 5)
-    graphics.generateTexture('bibi', 96, 112)
-    graphics.clear()
-
-    graphics.fillStyle(0x9d6039)
-    graphics.fillEllipse(23, 37, 24, 40)
-    graphics.fillEllipse(73, 37, 24, 40)
-    graphics.fillStyle(0xf6e8d8)
-    graphics.fillCircle(48, 40, 27)
-    graphics.fillStyle(0xcaa168)
-    graphics.fillRoundedRect(22, 10, 52, 15, 7)
-    graphics.fillRect(31, 2, 34, 13)
-    graphics.fillStyle(0x17324d)
-    graphics.fillCircle(39, 39, 4)
-    graphics.fillCircle(57, 39, 4)
-    graphics.fillStyle(0x2b211b)
-    graphics.fillEllipse(48, 51, 10, 7)
-    graphics.fillStyle(0xc79558)
-    graphics.fillRoundedRect(27, 66, 42, 31, 11)
-    graphics.fillStyle(0xd94a32)
-    graphics.fillRect(28, 67, 40, 7)
-    graphics.fillStyle(0xf6e8d8)
-    graphics.fillRoundedRect(31, 94, 12, 15, 5)
-    graphics.fillRoundedRect(53, 94, 12, 15, 5)
-    graphics.generateTexture('max', 96, 112)
-    graphics.clear()
-
-    graphics.fillStyle(0xf2792f)
-    graphics.fillTriangle(20, 29, 30, 2, 42, 31)
-    graphics.fillTriangle(54, 31, 66, 2, 76, 29)
-    graphics.fillCircle(48, 40, 27)
-    graphics.fillStyle(0xffffff)
-    graphics.fillEllipse(48, 51, 30, 22)
-    graphics.fillStyle(0x17324d)
-    graphics.fillCircle(39, 38, 4)
-    graphics.fillCircle(57, 38, 4)
-    graphics.fillStyle(0x492718)
-    graphics.fillCircle(48, 49, 4)
-    graphics.fillStyle(0x327fd1)
-    graphics.fillRoundedRect(27, 66, 42, 31, 11)
-    graphics.fillStyle(0x7b512e)
-    graphics.fillRoundedRect(31, 94, 12, 15, 5)
-    graphics.fillRoundedRect(53, 94, 12, 15, 5)
-    graphics.generateTexture('foxy', 96, 112)
-    graphics.clear()
-
-    graphics.fillStyle(0x69c759)
-    graphics.fillCircle(48, 39, 27)
-    graphics.fillRoundedRect(27, 65, 42, 34, 12)
-    graphics.fillStyle(0xef7735)
-    graphics.fillTriangle(31, 18, 37, 2, 43, 19)
-    graphics.fillTriangle(46, 13, 52, 0, 58, 16)
-    graphics.fillStyle(0x17324d)
-    graphics.fillCircle(39, 38, 4)
-    graphics.fillCircle(57, 38, 4)
-    graphics.fillStyle(0xbce998)
-    graphics.fillEllipse(48, 52, 25, 17)
-    graphics.generateTexture('dino', 96, 112)
-    graphics.clear()
-
+    // Canonical SVG hero art is preloaded for the playable racers.
+    // Generated textures below are reserved for environment/gameplay props.
     graphics.fillStyle(0x58bd55)
     graphics.fillRoundedRect(0, 0, 320, 70, 18)
     graphics.fillStyle(0x8b5d34)

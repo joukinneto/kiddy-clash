@@ -35,6 +35,7 @@ export default function App() {
   const [playing, setPlaying] = useState(false)
   const gameRef = useRef<Phaser.Game | null>(null)
   const t = copy[language]
+  const isDevelopmentPreview = import.meta.env.VITE_BUILD_CHANNEL === 'development-preview'
 
   useEffect(() => {
     if (!playing) return

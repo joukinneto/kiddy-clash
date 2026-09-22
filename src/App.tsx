@@ -29,6 +29,7 @@ export default function App() {
   const [playing, setPlaying] = useState(false)
   const gameRef = useRef<Phaser.Game | null>(null)
   const t = copy[language]
+  const isDevelopmentPreview = import.meta.env.VITE_BUILD_CHANNEL === 'development-preview'
 
   useEffect(() => {
     if (!playing) return
@@ -60,6 +61,11 @@ export default function App() {
   return (
     <main className="home">
       <section className="hero-card">
+        {isDevelopmentPreview && (
+          <div className="preview-badge" role="status">
+            🧪 {language === 'pt-BR' ? 'PRÉVIA DE DESENVOLVIMENTO' : 'DEVELOPMENT PREVIEW'}
+          </div>
+        )}
         <img className="game-logo" src="./assets/ui/kiddy-clash-logo.svg" alt="Kiddy Clash" />
         <p className="subtitle">{t.subtitle}</p>
 

@@ -1,4 +1,4 @@
-name: Deploy Kiddy Clash to GitHub Pages
+name: Publish Kiddy Clash Development Preview
 
 on:
   push:
@@ -13,11 +13,11 @@ permissions:
 
 concurrency:
   group: github-pages
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build:
-    name: Build Pages artifact
+    name: Build Development Preview
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
@@ -43,7 +43,9 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
-      - name: Build
+      - name: Build Development Preview
+        env:
+          VITE_BUILD_CHANNEL: development-preview
         run: npm run build
 
       - name: Configure GitHub Pages
@@ -55,7 +57,7 @@ jobs:
           path: dist
 
   deploy:
-    name: Deploy GitHub Pages
+    name: Deploy Development Preview
     needs: build
     runs-on: ubuntu-24.04
     environment:
